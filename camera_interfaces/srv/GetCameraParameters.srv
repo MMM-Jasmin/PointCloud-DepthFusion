@@ -1,0 +1,10 @@
+---
+# depth intrinsics
+sensor_msgs/CameraInfo depth_intrinsics
+# color intrinsics
+sensor_msgs/CameraInfo color_intrinsics
+
+# depth to color extrinsics (rotation is column major)
+float32[3] extrinsic_translation
+float32[9] extrinsic_rotation
+

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link href="data:text/css;charset=utf-8,%0A%0Ahtml%20%7B%0Afont%2Dfamily%3A%20sans%2Dserif%3B%20%0A%2Dms%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%20%0A%2Dwebkit%2Dtext%2Dsize%2Dadjust%3A%20100%25%3B%20%0A%7D%0A%0Abody%20%7B%0Amargin%3A%200%3B%0A%7D%0A%0A%0Aarticle%2C%0Aaside%2C%0Adetails%2C%0Afigcaption%2C%0Afigure%2C%0Afooter%2C%0Aheader%2C%0Ahgroup%2C%0Amain%2C%0Anav%2C%0Asection%2C%0Asummary%20%7B%0Adisplay%3A%20block%3B%0A%7D%0A%0Aaudio%2C%0Acanvas%2C%0Aprogress%2C%0Avideo%20%7B%0Adisplay%3A%20inline%2Dblock%3B%20%0Avertical%2Dalign%3A%20baseline%3B%20%0A%7D%0A%0Aaudio%3Anot%28%5Bcontrols%5D%29%20%7B%0Adisplay%3A%20none%3B%0Aheight%3A%200%3B%0A%7D%0A%0A%5Bhidden%5D%2C%0Atemplate%20%7B%0Adisplay%3A%20none%3B%0A%7D%0A%0A%0Aa%20%7B%0Abackground%3A%20transparent%3B%0A%7D%0A%0Aa%3Aactive%2C%0Aa%3Ahover%20%7B%0Aoutline%3A%200%3B%0A%7D%0A%0A%0Aabbr%5Btitle%5D%20%7B%0Aborder%2Dbottom%3A%201px%20dotted%3B%0A%7D%0A%0Ab%2C%0Astrong%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%0Adfn%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%0Ah1%20%7B%0Afont%2Dsize%3A%202em%3B%0Amargin%3A%200%2E67em%200%3B%0A%7D%0A%0Amark%20%7B%0Abackground%3A%20%23ff0%3B%0Acolor%3A%20%23000%3B%0A%7D%0A%0Asmall%20%7B%0Afont%2Dsize%3A%2080%25%3B%0A%7D%0A%0Asub%2C%0Asup%20%7B%0Afont%2Dsize%3A%2075%25%3B%0Aline%2Dheight%3A%200%3B%0Aposition%3A%20relative%3B%0Avertical%2Dalign%3A%20baseline%3B%0A%7D%0Asup%20%7B%0Atop%3A%20%2D0%2E5em%3B%0A%7D%0Asub%20%7B%0Abottom%3A%20%2D0%2E25em%3B%0A%7D%0A%0A%0Aimg%20%7B%0Aborder%3A%200%3B%0A%7D%0A%0Asvg%3Anot%28%3Aroot%29%20%7B%0Aoverflow%3A%20hidden%3B%0A%7D%0A%0A%0Afigure%20%7B%0Amargin%3A%201em%2040px%3B%0A%7D%0A%0Ahr%20%7B%0A%2Dmoz%2Dbox%2Dsizing%3A%20content%2Dbox%3B%0Abox%2Dsizing%3A%20content%2Dbox%3B%0Aheight%3A%200%3B%0A%7D%0A%0Apre%20%7B%0Aoverflow%3A%20auto%3B%0A%7D%0A%0Acode%2C%0Akbd%2C%0Apre%2C%0Asamp%20%7B%0Afont%2Dfamily%3A%20monospace%2C%20monospace%3B%0Afont%2Dsize%3A%201em%3B%0A%7D%0A%0A%0A%0Abutton%2C%0Ainput%2C%0Aoptgroup%2C%0Aselect%2C%0Atextarea%20%7B%0Acolor%3A%20inherit%3B%20%0Afont%3A%20inherit%3B%20%0Amargin%3A%200%3B%20%0A%7D%0A%0Abutton%20%7B%0Aoverflow%3A%20visible%3B%0A%7D%0A%0Abutton%2C%0Aselect%20%7B%0Atext%2Dtransform%3A%20none%3B%0A%7D%0A%0Abutton%2C%0Ahtml%20input%5Btype%3D%22button%22%5D%2C%20%0Ainput%5Btype%3D%22reset%22%5D%2C%0Ainput%5Btype%3D%22submit%22%5D%20%7B%0A%2Dwebkit%2Dappearance%3A%20button%3B%20%0Acursor%3A%20pointer%3B%20%0A%7D%0A%0Abutton%5Bdisabled%5D%2C%0Ahtml%20input%5Bdisabled%5D%20%7B%0Acursor%3A%20default%3B%0A%7D%0A%0Abutton%3A%3A%2Dmoz%2Dfocus%2Dinner%2C%0Ainput%3A%3A%2Dmoz%2Dfocus%2Dinner%20%7B%0Aborder%3A%200%3B%0Apadding%3A%200%3B%0A%7D%0A%0Ainput%20%7B%0Aline%2Dheight%3A%20normal%3B%0A%7D%0A%0Ainput%5Btype%3D%22checkbox%22%5D%2C%0Ainput%5Btype%3D%22radio%22%5D%20%7B%0Abox%2Dsizing%3A%20border%2Dbox%3B%20%0Apadding%3A%200%3B%20%0A%7D%0A%0Ainput%5Btype%3D%22number%22%5D%3A%3A%2Dwebkit%2Dinner%2Dspin%2Dbutton%2C%0Ainput%5Btype%3D%22number%22%5D%3A%3A%2Dwebkit%2Douter%2Dspin%2Dbutton%20%7B%0Aheight%3A%20auto%3B%0A%7D%0A%0Ainput%5Btype%3D%22search%22%5D%20%7B%0A%2Dwebkit%2Dappearance%3A%20textfield%3B%20%0A%2Dmoz%2Dbox%2Dsizing%3A%20content%2Dbox%3B%0A%2Dwebkit%2Dbox%2Dsizing%3A%20content%2Dbox%3B%20%0Abox%2Dsizing%3A%20content%2Dbox%3B%0A%7D%0A%0Ainput%5Btype%3D%22search%22%5D%3A%3A%2Dwebkit%2Dsearch%2Dcancel%2Dbutton%2C%0Ainput%5Btype%3D%22search%22%5D%3A%3A%2Dwebkit%2Dsearch%2Ddecoration%20%7B%0A%2Dwebkit%2Dappearance%3A%20none%3B%0A%7D%0A%0Afieldset%20%7B%0Aborder%3A%201px%20solid%20%23c0c0c0%3B%0Amargin%3A%200%202px%3B%0Apadding%3A%200%2E35em%200%2E625em%200%2E75em%3B%0A%7D%0A%0Alegend%20%7B%0Aborder%3A%200%3B%20%0Apadding%3A%200%3B%20%0A%7D%0A%0Atextarea%20%7B%0Aoverflow%3A%20auto%3B%0A%7D%0A%0Aoptgroup%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%0A%0Atable%20%7B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dspacing%3A%200%3B%0A%7D%0Atd%2C%0Ath%20%7B%0Apadding%3A%200%3B%0A%7D%0A%0A%2Ecaption%20%7B%0Amargin%2Dbottom%3A%205em%3B%0A%7D%0A%0Ahtml%2C%20body%20%7B%0Amargin%3A%20auto%3B%0Apadding%2Dright%3A%201em%3B%0Apadding%2Dleft%3A%201em%3B%0Amax%2Dwidth%3A%2044em%3B%0Acolor%3A%20black%3B%0A%7D%0A%2A%3Anot%28%27%23mkdbuttons%27%29%20%7B%0Amargin%3A%200%3B%0Apadding%3A%200%3B%0A%7D%0Abody%20%7B%0Afont%3A%2013%2E34px%20helvetica%2C%20arial%2C%20freesans%2C%20clean%2C%20sans%2Dserif%3B%0A%2Dwebkit%2Dfont%2Dsmoothing%3A%20subpixel%2Dantialiased%3B%0Aline%2Dheight%3A%201%2E4%3B%0Apadding%3A%203px%3B%0Abackground%3A%20%23fff%3B%0Aborder%2Dradius%3A%203px%3B%0A%2Dmoz%2Dborder%2Dradius%3A%203px%3B%0A%2Dwebkit%2Dborder%2Dradius%3A%203px%3B%0A%7D%0Ap%20%7B%0Amargin%3A%201em%200%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%234183c4%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Abody%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Apadding%3A%2030px%3B%0Amargin%3A%2015px%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E6%3B%0A%7D%0Abody%3E%2A%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%21important%3B%0A%7D%0Abody%3E%2A%3Alast%2Dchild%20%7B%0Amargin%2Dbottom%3A%200%21important%3B%0A%7D%0A%40media%20screen%20%7B%0Abody%20%7B%0Abox%2Dshadow%3A%200%200%200%201px%20%23cacaca%2C%200%200%200%204px%20%23eee%3B%0A%7D%0A%7Dh1%2C%20h2%2C%20h3%2C%20h4%2C%20h5%2C%20h6%20%7B%0Amargin%3A%2020px%200%2010px%3B%0Apadding%3A%200%3B%0Afont%2Dweight%3A%20bold%3B%0A%2Dwebkit%2Dfont%2Dsmoothing%3A%20subpixel%2Dantialiased%3B%0Acursor%3A%20text%3B%0A%7D%0Ah1%20%7B%0Afont%2Dsize%3A%2028px%3B%0Acolor%3A%20%23000%3B%0A%7D%0Ah2%20%7B%0Afont%2Dsize%3A%2024px%3B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Acolor%3A%20%23000%3B%0A%7D%0Ah3%20%7B%0Afont%2Dsize%3A%2018px%3B%0Acolor%3A%20%23333%3B%0A%7D%0Ah4%20%7B%0Afont%2Dsize%3A%2016px%3B%0Acolor%3A%20%23333%3B%0A%7D%0Ah5%20%7B%0Afont%2Dsize%3A%2014px%3B%0Acolor%3A%20%23333%3B%0A%7D%0Ah6%20%7B%0Acolor%3A%20%23777%3B%0Afont%2Dsize%3A%2014px%3B%0A%7D%0Ap%2C%20blockquote%2C%20table%2C%20pre%20%7B%0Amargin%3A%2015px%200%3B%0A%7D%0Aul%20%7B%0Apadding%2Dleft%3A%2030px%3B%0A%7D%0Aol%20%7B%0Apadding%2Dleft%3A%2030px%3B%0A%7D%0Aol%20li%20ul%3Afirst%2Dof%2Dtype%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Ahr%20%7B%0Abackground%3A%20transparent%20url%28data%3Aimage%2Fpng%3B%0A%20%20%20%20base64%2C%20iVBORw0KGgoAAAANSUhEUgAAAAYAAAAECAYAAACtBE5DAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw%2FeHBhY2tldCBiZWdpbj0i77u%2FIiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8%2BIDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OENDRjNBN0E2NTZBMTFFMEI3QjRBODM4NzJDMjlGNDgiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6OENDRjNBN0I2NTZBMTFFMEI3QjRBODM4NzJDMjlGNDgiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo4Q0NGM0E3ODY1NkExMUUwQjdCNEE4Mzg3MkMyOUY0OCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo4Q0NGM0E3OTY1NkExMUUwQjdCNEE4Mzg3MkMyOUY0OCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI%2FPqqezsUAAAAfSURBVHjaYmRABcYwBiM2QSA4y4hNEKYDQxAEAAIMAHNGAzhkPOlYAAAAAElFTkSuQmCC%29%20repeat%2Dx%200%200%3B%0Aborder%3A%200%20none%3B%0Acolor%3A%20%23ccc%3B%0Aheight%3A%204px%3B%0Apadding%3A%200%3B%0A%7D%0Abody%3Eh2%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0Apadding%2Dtop%3A%200%3B%0A%7D%0Abody%3Eh1%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0Apadding%2Dtop%3A%200%3B%0A%7D%0Abody%3Eh1%3Afirst%2Dchild%2Bh2%20%7B%0Amargin%2Dtop%3A%200%3B%0Apadding%2Dtop%3A%200%3B%0A%7D%0Abody%3Eh3%3Afirst%2Dchild%2C%20body%3Eh4%3Afirst%2Dchild%2C%20body%3Eh5%3Afirst%2Dchild%2C%20body%3Eh6%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0Apadding%2Dtop%3A%200%3B%0A%7D%0Aa%3Afirst%2Dchild%20h1%2C%20a%3Afirst%2Dchild%20h2%2C%20a%3Afirst%2Dchild%20h3%2C%20a%3Afirst%2Dchild%20h4%2C%20a%3Afirst%2Dchild%20h5%2C%20a%3Afirst%2Dchild%20h6%20%7B%0Amargin%2Dtop%3A%200%3B%0Apadding%2Dtop%3A%200%3B%0A%7D%0Ah1%2Bp%2C%20h2%2Bp%2C%20h3%2Bp%2C%20h4%2Bp%2C%20h5%2Bp%2C%20h6%2Bp%2C%20ul%20li%3E%3Afirst%2Dchild%2C%20ol%20li%3E%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Adl%20%7B%0Apadding%3A%200%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dsize%3A%2014px%3B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dstyle%3A%20italic%3B%0Apadding%3A%200%3B%0Amargin%3A%2015px%200%205px%3B%0A%7D%0Adl%20dt%3Afirst%2Dchild%20%7B%0Apadding%3A%200%3B%0A%7D%0Adl%20dt%3E%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Adl%20dt%3E%3Alast%2Dchild%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%3A%200%200%2015px%3B%0Apadding%3A%200%2015px%3B%0A%7D%0Adl%20dd%3E%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Adl%20dd%3E%3Alast%2Dchild%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Ablockquote%20%7B%0Aborder%2Dleft%3A%204px%20solid%20%23DDD%3B%0Apadding%3A%200%2015px%3B%0Acolor%3A%20%23777%3B%0A%7D%0Ablockquote%3E%3Afirst%2Dchild%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Ablockquote%3E%3Alast%2Dchild%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Atable%20%7B%0Aborder%2Dcollapse%3A%20collapse%3B%0Aborder%2Dspacing%3A%200%3B%0Afont%2Dsize%3A%20100%25%3B%0Afont%3A%20inherit%3B%0A%7D%0Atable%20th%20%7B%0Afont%2Dweight%3A%20bold%3B%0Aborder%3A%201px%20solid%20%23ccc%3B%0Apadding%3A%206px%2013px%3B%0A%7D%0Atable%20td%20%7B%0Aborder%3A%201px%20solid%20%23ccc%3B%0Apadding%3A%206px%2013px%3B%0A%7D%0Atable%20tr%20%7B%0Aborder%2Dtop%3A%201px%20solid%20%23ccc%3B%0Abackground%2Dcolor%3A%20%23fff%3B%0A%7D%0Atable%20tr%3Anth%2Dchild%282n%29%20%7B%0Abackground%2Dcolor%3A%20%23f8f8f8%3B%0A%7D%0Aimg%20%7B%0Amax%2Dwidth%3A%20100%25%7D%0Acode%2C%20tt%20%7B%0Amargin%3A%200%202px%3B%0Apadding%3A%200%205px%3B%0Awhite%2Dspace%3A%20nowrap%3B%0Aborder%3A%201px%20solid%20%23eaeaea%3B%0Abackground%2Dcolor%3A%20%23f8f8f8%3B%0Aborder%2Dradius%3A%203px%3B%0Afont%2Dfamily%3A%20Consolas%2C%20%27Liberation%20Mono%27%2C%20Courier%2C%20monospace%3B%0Afont%2Dsize%3A%2012px%3B%0Acolor%3A%20%23333%3B%0A%7D%0Apre%3Ecode%20%7B%0Amargin%3A%200%3B%0Apadding%3A%200%3B%0Awhite%2Dspace%3A%20pre%3B%0Aborder%3A%200%3B%0Abackground%3A%20transparent%3B%0A%7D%0A%2Ehighlight%20pre%20%7B%0Abackground%2Dcolor%3A%20%23f8f8f8%3B%0Aborder%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%2019px%3B%0Aoverflow%3A%20auto%3B%0Apadding%3A%206px%2010px%3B%0Aborder%2Dradius%3A%203px%3B%0A%7D%0Apre%20%7B%0Abackground%2Dcolor%3A%20%23f8f8f8%3B%0Aborder%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%2019px%3B%0Aoverflow%3A%20auto%3B%0Apadding%3A%206px%2010px%3B%0Aborder%2Dradius%3A%203px%3B%0A%7D%0Apre%20code%2C%20pre%20tt%20%7B%0Abackground%2Dcolor%3A%20transparent%3B%0Aborder%3A%200%3B%0A%7D%0A%2Epoetry%20pre%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Garamond%2C%20serif%21important%3B%0Afont%2Dstyle%3A%20italic%3B%0Afont%2Dsize%3A%20110%25%21important%3B%0Aline%2Dheight%3A%201%2E6em%3B%0Adisplay%3A%20block%3B%0Amargin%2Dleft%3A%201em%3B%0A%7D%0A%2Epoetry%20pre%20code%20%7B%0Afont%2Dfamily%3A%20Georgia%2C%20Garamond%2C%20serif%21important%3B%0Aword%2Dbreak%3A%20break%2Dall%3B%0Aword%2Dbreak%3A%20break%2Dword%3B%0A%2Dwebkit%2Dhyphens%3A%20auto%3B%0A%2Dmoz%2Dhyphens%3A%20auto%3B%0Ahyphens%3A%20auto%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%0A%7D%0Asup%2C%20sub%2C%20a%2Efootnote%20%7B%0Afont%2Dsize%3A%201%2E4ex%3B%0Aheight%3A%200%3B%0Aline%2Dheight%3A%201%3B%0Avertical%2Dalign%3A%20super%3B%0Aposition%3A%20relative%3B%0A%7D%0Asub%20%7B%0Avertical%2Dalign%3A%20sub%3B%0Atop%3A%20%2D1px%3B%0A%7D%0A%40media%20print%20%7B%0Abody%20%7B%0Abackground%3A%20%23fff%3B%0A%7D%0Aimg%2C%20pre%2C%20blockquote%2C%20table%2C%20figure%20%7B%0Apage%2Dbreak%2Dinside%3A%20avoid%3B%0A%7D%0Abody%20%7B%0Abackground%3A%20%23fff%3B%0Aborder%3A%200%3B%0A%7D%0Acode%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Acolor%3A%20%23333%21important%3B%0Apadding%3A%200%20%2E2em%3B%0Aborder%3A%201px%20solid%20%23dedede%3B%0A%7D%0Apre%20%7B%0Abackground%3A%20%23fff%3B%0A%7D%0Apre%20code%20%7B%0Abackground%2Dcolor%3A%20white%21important%3B%0Aoverflow%3A%20visible%3B%0A%7D%0A%7D%40media%20screen%20%7B%0Abody%2Einverted%20%7B%0Acolor%3A%20%23eee%21important%3B%0Aborder%2Dcolor%3A%20%23555%3B%0Abox%2Dshadow%3A%20none%3B%0A%7D%0A%2Einverted%20body%2C%20%2Einverted%20hr%20%2Einverted%20p%2C%20%2Einverted%20td%2C%20%2Einverted%20li%2C%20%2Einverted%20h1%2C%20%2Einverted%20h2%2C%20%2Einverted%20h3%2C%20%2Einverted%20h4%2C%20%2Einverted%20h5%2C%20%2Einverted%20h6%2C%20%2Einverted%20th%2C%20%2Einverted%20%2Emath%2C%20%2Einverted%20caption%2C%20%2Einverted%20dd%2C%20%2Einverted%20dt%2C%20%2Einverted%20blockquote%20%7B%0Acolor%3A%20%23eee%21important%3B%0Aborder%2Dcolor%3A%20%23555%3B%0Abox%2Dshadow%3A%20none%3B%0A%7D%0A%2Einverted%20td%2C%20%2Einverted%20th%20%7B%0Abackground%3A%20%23333%3B%0A%7D%0A%2Einverted%20h2%20%7B%0Aborder%2Dcolor%3A%20%23555%3B%0A%7D%0A%2Einverted%20hr%20%7B%0Aborder%2Dcolor%3A%20%23777%3B%0Aborder%2Dwidth%3A%201px%21important%3B%0A%7D%0A%3A%3Aselection%20%7B%0Abackground%3A%20rgba%28157%2C%20193%2C%20200%2C%200%2E5%29%3B%0A%7D%0Ah1%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%2845%2C%20156%2C%20208%2C%200%2E3%29%3B%0A%7D%0Ah2%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%2890%2C%20182%2C%20224%2C%200%2E3%29%3B%0A%7D%0Ah3%3A%3Aselection%2C%20h4%3A%3Aselection%2C%20h5%3A%3Aselection%2C%20h6%3A%3Aselection%2C%20li%3A%3Aselection%2C%20ol%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%28133%2C%20201%2C%20232%2C%200%2E3%29%3B%0A%7D%0Acode%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%280%2C%200%2C%200%2C%200%2E7%29%3B%0Acolor%3A%20%23eee%3B%0A%7D%0Acode%20span%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%280%2C%200%2C%200%2C%200%2E7%29%21important%3B%0Acolor%3A%20%23eee%21important%3B%0A%7D%0Aa%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%28255%2C%20230%2C%20102%2C%200%2E2%29%3B%0A%7D%0A%2Einverted%20a%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%28255%2C%20230%2C%20102%2C%200%2E6%29%3B%0A%7D%0Atd%3A%3Aselection%2C%20th%3A%3Aselection%2C%20caption%3A%3Aselection%20%7B%0Abackground%2Dcolor%3A%20rgba%28180%2C%20237%2C%2095%2C%200%2E5%29%3B%0A%7D%0A%2Einverted%20%7B%0Abackground%3A%20%230b2531%3B%0Abackground%3A%20%23252a2a%3B%0A%7D%0A%2Einverted%20body%20%7B%0Abackground%3A%20%23252a2a%3B%0A%7D%0A%2Einverted%20a%20%7B%0Acolor%3A%20%23acd1d5%3B%0A%7D%0A%7D%2Ehighlight%20%2Ec%20%7B%0Acolor%3A%20%23998%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%2Ehighlight%20%2Eerr%20%7B%0Acolor%3A%20%23a61717%3B%0Abackground%2Dcolor%3A%20%23e3d2d2%3B%0A%7D%0A%2Ehighlight%20%2Ek%2C%20%2Ehighlight%20%2Eo%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Ecm%20%7B%0Acolor%3A%20%23998%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%2Ehighlight%20%2Ecp%20%7B%0Acolor%3A%20%23999%3B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Ec1%20%7B%0Acolor%3A%20%23998%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%2Ehighlight%20%2Ecs%20%7B%0Acolor%3A%20%23999%3B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%2Ehighlight%20%2Egd%20%7B%0Acolor%3A%20%23000%3B%0Abackground%2Dcolor%3A%20%23fdd%3B%0A%7D%0A%2Ehighlight%20%2Egd%20%2Ex%20%7B%0Acolor%3A%20%23000%3B%0Abackground%2Dcolor%3A%20%23faa%3B%0A%7D%0A%2Ehighlight%20%2Ege%20%7B%0Afont%2Dstyle%3A%20italic%3B%0A%7D%0A%2Ehighlight%20%2Egr%20%7B%0Acolor%3A%20%23a00%3B%0A%7D%0A%2Ehighlight%20%2Egh%20%7B%0Acolor%3A%20%23999%3B%0A%7D%0A%2Ehighlight%20%2Egi%20%7B%0Acolor%3A%20%23000%3B%0Abackground%2Dcolor%3A%20%23dfd%3B%0A%7D%0A%2Ehighlight%20%2Egi%20%2Ex%20%7B%0Acolor%3A%20%23000%3B%0Abackground%2Dcolor%3A%20%23afa%3B%0A%7D%0A%2Ehighlight%20%2Ego%20%7B%0Acolor%3A%20%23888%3B%0A%7D%0A%2Ehighlight%20%2Egp%20%7B%0Acolor%3A%20%23555%3B%0A%7D%0A%2Ehighlight%20%2Egs%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Egu%20%7B%0Acolor%3A%20%23800080%3B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Egt%20%7B%0Acolor%3A%20%23a00%3B%0A%7D%0A%2Ehighlight%20%2Ekc%2C%20%2Ehighlight%20%2Ekd%2C%20%2Ehighlight%20%2Ekn%2C%20%2Ehighlight%20%2Ekp%2C%20%2Ehighlight%20%2Ekr%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Ekt%20%7B%0Acolor%3A%20%23458%3B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Em%20%7B%0Acolor%3A%20%23099%3B%0A%7D%0A%2Ehighlight%20%2Es%20%7B%0Acolor%3A%20%23d14%3B%0A%7D%0A%2Ehighlight%20%2Ena%20%7B%0Acolor%3A%20%23008080%3B%0A%7D%0A%2Ehighlight%20%2Enb%20%7B%0Acolor%3A%20%230086b3%3B%0A%7D%0A%2Ehighlight%20%2Enc%20%7B%0Acolor%3A%20%23458%3B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Eno%20%7B%0Acolor%3A%20%23008080%3B%0A%7D%0A%2Ehighlight%20%2Eni%20%7B%0Acolor%3A%20%23800080%3B%0A%7D%0A%2Ehighlight%20%2Ene%2C%20%2Ehighlight%20%2Enf%20%7B%0Acolor%3A%20%23900%3B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Enn%20%7B%0Acolor%3A%20%23555%3B%0A%7D%0A%2Ehighlight%20%2Ent%20%7B%0Acolor%3A%20%23000080%3B%0A%7D%0A%2Ehighlight%20%2Env%20%7B%0Acolor%3A%20%23008080%3B%0A%7D%0A%2Ehighlight%20%2Eow%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0A%2Ehighlight%20%2Ew%20%7B%0Acolor%3A%20%23bbb%3B%0A%7D%0A%2Ehighlight%20%2Emf%2C%20%2Ehighlight%20%2Emh%2C%20%2Ehighlight%20%2Emi%2C%20%2Ehighlight%20%2Emo%20%7B%0Acolor%3A%20%23099%3B%0A%7D%0A%2Ehighlight%20%2Esb%2C%20%2Ehighlight%20%2Esc%2C%20%2Ehighlight%20%2Esd%2C%20%2Ehighlight%20%2Es2%2C%20%2Ehighlight%20%2Ese%2C%20%2Ehighlight%20%2Esh%2C%20%2Ehighlight%20%2Esi%2C%20%2Ehighlight%20%2Esx%20%7B%0Acolor%3A%20%23d14%3B%0A%7D%0A%2Ehighlight%20%2Esr%20%7B%0Acolor%3A%20%23009926%3B%0A%7D%0A%2Ehighlight%20%2Es1%20%7B%0Acolor%3A%20%23d14%3B%0A%7D%0A%2Ehighlight%20%2Ess%20%7B%0Acolor%3A%20%23990073%3B%0A%7D%0A%2Ehighlight%20%2Ebp%20%7B%0Acolor%3A%20%23999%3B%0A%7D%0A%2Ehighlight%20%2Evc%2C%20%2Ehighlight%20%2Evg%2C%20%2Ehighlight%20%2Evi%20%7B%0Acolor%3A%20%23008080%3B%0A%7D%0A%2Ehighlight%20%2Eil%20%7B%0Acolor%3A%20%23099%3B%0A%7D%0A%2Ehighlight%20%2Egc%20%7B%0Acolor%3A%20%23999%3B%0Abackground%2Dcolor%3A%20%23eaf2f5%3B%0A%7D%0A%2Etype%2Dcsharp%20%2Ehighlight%20%2Ek%2C%20%2Etype%2Dcsharp%20%2Ehighlight%20%2Ekt%20%7B%0Acolor%3A%20%2300F%3B%0A%7D%0A%2Etype%2Dcsharp%20%2Ehighlight%20%2Enf%20%7B%0Acolor%3A%20%23000%3B%0Afont%2Dweight%3A%20normal%3B%0A%7D%0A%2Etype%2Dcsharp%20%2Ehighlight%20%2Enc%20%7B%0Acolor%3A%20%232b91af%3B%0A%7D%0A%2Etype%2Dcsharp%20%2Ehighlight%20%2Enn%20%7B%0Acolor%3A%20%23000%3B%0A%7D%0A%2Etype%2Dcsharp%20%2Ehighlight%20%2Es%2C%20%2Etype%2Dcsharp%20%2Ehighlight%20%2Esc%20%7B%0Acolor%3A%20%23a31515%3B%0A%7D%0A" rel="stylesheet">
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="depthfusion---smart-mirror-point-cloud-fusion-module">DepthFusion - Smart Mirror Point Cloud Fusion Module</h1>
+<p>The smart mirror platform was developed in the context of the Low Energy Toolset for Heterogeneous Computing (<a href="https://github.com/LEGaTO-SmartMirror">LEGaTO</a>) project.<br />
+DepthFusion is a framework that extends the smart mirror by generating a mirror image of the user, based on a point cloud representation generated from color and depth images from two connected RealSense D455 cameras.<br />
+The framework uses the Robot Operating System (<a href="https://docs.ros.org/en/foxy/index.html">ROS2</a>) for distributed data centric communication across the two installed Nvidia Jetson Xavier AGX embedded computing units.</p>
+<h2 id="content">Content</h2>
+<ol type="1">
+<li><a href="#structure">Structure</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#usage">Usage</a></li>
+</ol>
+<h2 id="structure">Structure</h2>
+<ul>
+<li>The project is structured into ROS packages
+<ul>
+<li><code>camera_node</code>
+<ul>
+<li>Runs on both Jetsons
+<ul>
+<li>Left camera: smartmirror4-1<br />
+</li>
+<li>Right camera: smarmirror4-2<br />
+</li>
+</ul></li>
+<li>Fetches color and depth images from the RealSense D455 camera<br />
+</li>
+<li>Depth images are sent to the registration node<br />
+</li>
+<li>Color and depth images are sent as framesets to the fusion node<br />
+</li>
+</ul></li>
+<li><code>registration_node</code>
+<ul>
+<li>Runs on smartmirror4-2</li>
+<li>Receives depth images</li>
+<li>Projects depth images to point clouds</li>
+<li>Registers the right point cloud to the left and estimates a transformation from the right to the left coordinate system</li>
+<li>The transformation is sent to the fusion node</li>
+</ul></li>
+<li><code>fusion_node</code>
+<ul>
+<li>Runs on smartmirror4-1</li>
+<li>Receives color and depth images bundled as framesets</li>
+<li>Projects framesets to point clouds</li>
+<li>Receives transformation from the registration node and transforms the right point cloud into the frame of reference of the left</li>
+<li>Creates a virtual camera which is located between the two cameras by default</li>
+<li>Fuses the two point clouds and projects the result onto the virtual camera plane</li>
+<li>Publishes the fused output image</li>
+</ul></li>
+<li><code>pointcloud_processing</code>
+<ul>
+<li>Provides CUDA kernels</li>
+<li>Classes for point and image processing</li>
+</ul></li>
+<li><code>image_node</code>
+<ul>
+<li>Based on OpenCV</li>
+<li>Visualizes output image</li>
+</ul></li>
+<li><code>camera_interfaces</code>
+<ul>
+<li>Specifies frameset message</li>
+<li>Defines camera parameter service</li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li><a href="https://ubuntu.com">Ubuntu</a> 18.04 LTS</li>
+<li><a href="https://gcc.gnu.org">GCC</a> 7.5.0</li>
+<li><a href="https://cmake.org">CMake</a> 3.22.2</li>
+<li><a href="https://developer.nvidia.com/cuda-toolkit">CUDA</a> 10.2</li>
+<li><a href="https://eigen.tuxfamily.org">Eigen3</a> 3.4.0</li>
+<li><a href="https://opencv.org">OpenCV</a> 4.5.2</li>
+<li><a href="https://github.com/PointCloudLibrary/pcl.git">Point Cloud Library</a> 1.12.0</li>
+<li><a href="https://github.com/IntelRealSense/librealsense.git">Realsense SDK</a> 2.50.0</li>
+<li><a href="https://github.com/SMRT-AIST/fast_gicp.git">FastGICP Library</a> build from 22/11/22 (automatic download during CMake build)</li>
+<li><a href="https://docs.ros.org/en/foxy/Installation.html">ROS2</a> &quot;Foxy Fitzroy&quot;
+<ul>
+<li>Required ROS2 packages<br />
+<code>rclcpp</code><br />
+<code>ament_index_cpp</code><br />
+<code>sensor_msgs</code><br />
+<code>message_filters</code><br />
+<code>tf2_ros</code><br />
+<code>tf2_eigen</code><br />
+<code>tf2_geometry_msgs</code><br />
+<code>image_transport</code><br />
+<code>pcl_conversions</code></li>
+</ul></li>
+</ul>
+<h2 id="installation">Installation</h2>
+<ul>
+<li>Assuming installed ROS2 workspace at <code>/opt/dev/ros2_ws</code></li>
+</ul>
+<h3 id="build">Build</h3>
+<ul>
+<li>Source ROS underlay and overlay<br />
+<code>$ cd /opt/dev/ros2_ws</code><br />
+<code>$ source &lt;rospath&gt;/setup.bash</code><br />
+<code>$ source ./install/setup.bash</code><br />
+</li>
+<li>Build packages for the first time<br />
+<code>$ cd /opt/dev/ros2_ws</code><br />
+<code>$ git clone https://github.com/MMM-Jasmin/PointCloud-DepthFusion</code><br />
+<code>$ colcon build</code><br />
+<code>$ source ./install/local_setup.bash</code><br />
+</li>
+<li>Rebuild packages<br />
+<code>$ cd /opt/dev/ros2_ws</code><br />
+<code>$ colcon build --packages-select pointcloud_processing camera_node fusion_node</code><br />
+<code>registration_node image_node</code><br />
+</li>
+<li>Compile Doxygen documentation<br />
+<code>$ colcon build --packages-select pointcloud_processing camera_node fusion_node</code> <code>registration_node image_node --cmake-target-skip-unavailable --cmake-target doc</code><br />
+Documentation as HTML and LaTeX can be found under<br />
+<code>/opt/dev/ros2_ws/build/&lt;package_name&gt;/doc</code><br />
+</li>
+<li>Optinal colcon arguments
+<ul>
+<li>Show CMake output<br />
+<code>--event-handlers console_direct+</code><br />
+</li>
+<li>Force CMake configure step<br />
+<code>--cmake-force-configure</code><br />
+</li>
+<li>Remove CMake cache and force configure step<br />
+<code>--cmake-clean-cache</code></li>
+</ul></li>
+</ul>
+<h2 id="usage">Usage</h2>
+<h3 id="launch">Launch</h3>
+<ul>
+<li>Run nodes in different processes
+<ul>
+<li>On smartmirror4-1<br />
+<code>$ taskset -c 2-3 nice -n -20 ros2 launch camera_node camera_left.launch.py</code><br />
+<code>$ taskset -c 4-5 nice -n -20 ros2 launch fusion_node standalone.launch.py</code><br />
+</li>
+<li>On smartmirror4-2<br />
+<code>$ taskset -c 2-3 nice -n -20 ros2 launch camera_node camera_right.launch.py</code><br />
+<code>$ taskset -c 4-5 nice -n -20 ros2 launch registration_node standalone.launch.py</code><br />
+</li>
+</ul></li>
+<li>Run nodes on the same host in one process
+<ul>
+<li>On smartmirror4-1<br />
+<code>$ taskset -c 2-6 nice -n -20 ros2 launch fusion_node camera_left.launch.py</code><br />
+</li>
+<li>On smartmirror4-2<br />
+<code>$ taskset -c 2-6 nice -n -20 ros2 launch registration_node camera_right.launch.py</code><br />
+</li>
+</ul></li>
+<li>Output image visualization<br />
+<code>$ taskset -c 7 nice -n -10 ros2 run image_node image_node</code></li>
+</ul>
+<h3 id="configuration-files">Configuration Files</h3>
+<ul>
+<li>Configuration files for the nodes are provided in .yaml format<br />
+</li>
+<li>Folder for config files<br />
+<code>/opt/dev/ros2_ws/install/&lt;package_name&gt;/share/&lt;package_name&gt;/config</code><br />
+</li>
+<li>Default config files are included in the sources. To customize the configuration, copy the <code>default_config.yaml</code> file to <code>config.yaml</code> in the config folder and edit the copy. If no <code>config.yaml</code> is found, the default config file is loaded.</li>
+</ul>
+<h3 id="message-parameters">Message Parameters</h3>
+<ul>
+<li>Quality of Service
+<ul>
+<li>Profile: SENSOR_DATA<br />
+</li>
+<li>History depth: 1</li>
+</ul></li>
+<li>Frame id: <code>camera_left_color_optical_frame</code><br />
+</li>
+<li>Topics
+<ul>
+<li>Output image<br />
+<code>/fused_image</code><br />
+</li>
+<li>Depth images<br />
+<code>/camera_left/depth/image</code><br />
+<code>/camera_right/depth/image</code><br />
+</li>
+<li>Framesets<br />
+<code>/camera_left/frameset</code><br />
+<code>/camera_right/frameset</code><br />
+</li>
+<li>Camera parameters<br />
+<code>/camera_left/depth/camera_info</code><br />
+<code>/camera_right/depth/camera_info</code><br />
+</li>
+<li>Registration<br />
+<code>/registration/transform</code>
+<ul>
+<li>Debug point clouds<br />
+<code>/registration/target_points</code><br />
+<code>/registration/aligned_points</code></li>
+</ul></li>
+</ul></li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>Topic</th>
+<th>Message Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/fused_image</code></td>
+<td><code>sensor_msgs::msg::Image</code></td>
+</tr>
+<tr class="even">
+<td><code>/camera_left/depth/image</code></td>
+<td><code>sensor_msgs::msg::Image</code></td>
+</tr>
+<tr class="odd">
+<td><code>/camera_right/depth/image</code></td>
+<td><code>sensor_msgs::msg::Image</code></td>
+</tr>
+<tr class="even">
+<td><code>/camera_left/frameset</code></td>
+<td><code>camera_interfaces::msg::DepthFrameset</code></td>
+</tr>
+<tr class="odd">
+<td><code>/camera_right/frameset</code></td>
+<td><code>camera_interfaces::msg::DepthFrameset</code></td>
+</tr>
+<tr class="even">
+<td><code>/camera_left/depth/camera_info</code></td>
+<td><code>sensor_msgs::msg::CameraInfo</code></td>
+</tr>
+<tr class="odd">
+<td><code>/camera_right/depth/camera_info</code></td>
+<td><code>sensor_msgs::msg::CameraInfo</code></td>
+</tr>
+<tr class="even">
+<td><code>/registration/transform</code></td>
+<td><code>geometry_msgs::msg::TransformStamped</code></td>
+</tr>
+<tr class="odd">
+<td><code>/registration/target_points</code></td>
+<td><code>sensor_msgs::msg::PointCloud2</code></td>
+</tr>
+<tr class="even">
+<td><code>/registration/aligned_points</code></td>
+<td><code>sensor_msgs::msg::PointCloud2</code></td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

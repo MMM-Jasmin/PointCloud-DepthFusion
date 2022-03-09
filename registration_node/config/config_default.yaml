@@ -1,0 +1,139 @@
+# Configuration for registration node
+registration_node:
+  ros__parameters:
+    # Verbose flag; Print additional information if true
+    verbose: false
+    # Use sensor data Quality of Service for messages
+    qos_sensor_data: true
+    # Message queue size
+    qos_history_depth: 1
+    # Publish point clouds for debug
+    publish_clouds: false
+    # Node spin rate in Hz
+    spin_rate: 0.5
+    # Point cloud voxel filter size in meters
+    voxelsize: 0.01
+    # VGICP registration algorithm voxel size in meters
+    resolution: 0.01
+    # VGICP kernel width in meters
+    kernel_width: 0.005
+    # VGICP maximum kernel distance in meters
+    kernel_max_dist: 0.025
+    # VGICP maximum number of iterations
+    max_iterations: 1000
+    # VGICP rotation termination condition in radians
+    rotation_epsilon: 2e-3
+    # VGICP translation termination condition in meters
+    translation_epsilon: 1e-4
+    # VGICP mean squared distance termination condition in square meters
+    fitness_epsilon: 1e-12
+    # Minimum and maximum limit for depth values
+    min_depth: 0.5
+    max_depth: 2.0
+    # Depth scale for depth images in meters; uint16 value * depth scale = distance
+    depth_scale: 0.0001
+    # Depth scale for depth images from left camera in meters if using different cameras
+    depth_scale_left: 0.0001 # D455
+    #depth_scale_left: 0.00025 # L515 and simulation
+    # Depth scale for depth images from right camera in meters if using different cameras
+    depth_scale_right: 0.0001 # D455
+    #depth_scale_right: 0.00025 # L515 and simulation
+    # Region of interest for left depth image
+    #roi_left: [320, 0, 960, 720]
+    # Region of interest for right depth image
+    #roi_right: [320, 0, 960, 720]
+    # Profiling configuration
+    profiling:
+      # Enable profiling logging
+      enable_profiling: false
+      # Profiling logfile in current working directory
+      filename: registration_node_profiling.txt
+      # Number of callbacks to log
+      log_size: 60
+
+# Configuration for right camera node if run in same process as registration node
+camera_right:
+  ros__parameters:
+    # Depth image topic for registration node
+    topic_depth: camera_right/depth/image
+    # Frameset topic for fusion node
+    topic_frameset: camera_right/frameset
+    # Verbose flag; Print additional information
+    verbose: false
+     # Use sensor data Quality of Service for messages
+    qos_sensor_data: true
+    # Message queue size
+    qos_history_depth: 1
+    # Minimum and maximum limit for depth values
+    min_depth: 0.5
+    max_depth: 2.0
+    # Depth scale for camera in meters; uint16 value * depth scale = distance
+    depth_scale: 0.0001 # D455
+    #depth_scale: 0.00025 # L515 and simulation
+    # Align depth to color image
+    use_rs_align: true
+    # Camera serial number
+    camera_serial_no: "141322251466"
+    # Use camera frame timestamp; If false set timestamp to time of arrival
+    use_rs_timestamp: true
+    # Profiling configuration
+    profiling:
+      # Enable profiling logging
+      enable_profiling: false
+      # Profiling logfile in current working directory
+      filename: camera_right_profiling.txt
+      # Number of callbacks to log
+      log_size: 400
+    # Debug configuration
+    debug:
+      # Print debug information
+      enable_debug: false
+      # Print camera related debug information
+      enable_rs_debug: false
+      # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
+      save_data: false
+    # Camera simulation configuration
+    simulation:
+      # Load simulation images and camera configuration from current working directory
+      simulate_images: false
+      color_image_filename: camera_right_color.png
+      depth_image_filename: camera_right_depthaligned.png
+      color_intrinsics_filename: camera_right_color_intrinsics.json
+      depth_intrinsics_filename: camera_right_depthaligned_intrinsics.json
+      # Depth scale for simulation images
+      depth_scale: 0.00025
+      # Publish framerate
+      framerate: 30
+    # RGB sensor
+    sensor.color:
+      # Auto exposure mode
+      enable_auto_exposure: true
+      # Disable auto exposure priority for stable framerate
+      auto_exposure_priority: false
+      # Sync camera clock with system clock if enabled; Starts at zero otherwise
+      global_time_enabled: true
+      # Frame buffer queue size; Equal to number of streams for low latency
+      frames_queue_size: 2
+    # Depth sensor
+    sensor.depth:
+      # Visual preset for camera; 0 custom, 1 default, 2 hand recognition, 3 high accuracy, 4 high density, 5 medium density
+      #visual_preset: 1
+      # Sync camera clock with system clock if enabled; Starts at zero otherwise
+      global_time_enabled: true
+      # Frame buffer queue size; Equal to number of streams for low latency
+      frames_queue_size: 2
+      # Hardware sync mode; 0 default, 1 master, 2 slave, 3 full slave, 4-260 genlock mode for frame bursts
+      inter_cam_sync_mode: 2
+      # Depth unit for one 16bit value; Should be the same as depth scale
+      depth_units: 0.0001
+      # Automatic exposure mode
+      enable_auto_exposure: true
+      # Limit automatic exporure time
+      auto_exposure_limit_toggle: true
+      # Value for automatic exporure limit
+      auto_exposure_limit: 20000
+      # Limit automatic digital gain
+      auto_gain_limit_toggle: true
+      # Value for automatic digital gain value
+      auto_gain_limit: 16
+
