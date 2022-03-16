@@ -80,8 +80,7 @@ The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/fo
 `$ source ./install/local_setup.bash`  
 - Rebuild packages  
 `$ cd /opt/dev/ros2_ws`  
-`$ colcon build --packages-select pointcloud_processing camera_node fusion_node`  
-`registration_node image_node`  
+`$ colcon build --packages-select pointcloud_processing camera_node fusion_node registration_node image_node`  
 - Compile Doxygen documentation  
 `$ colcon build --packages-select pointcloud_processing camera_node fusion_node`   `registration_node image_node --cmake-target-skip-unavailable --cmake-target doc`  
 Documentation as HTML and LaTeX can be found under  
