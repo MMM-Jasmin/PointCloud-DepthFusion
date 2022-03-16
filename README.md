@@ -52,6 +52,7 @@ The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/fo
 - [Point Cloud Library](https://github.com/PointCloudLibrary/pcl.git) 1.12.0
 - [Realsense SDK](https://github.com/IntelRealSense/librealsense.git) 2.50.0
 - [FastGICP Library](https://github.com/SMRT-AIST/fast_gicp.git) build from 22/11/22 (automatic download during CMake build)
+- [Nlohmann json](https://github.com/nlohmann/json.git) 
 - [ROS2](https://docs.ros.org/en/foxy/Installation.html) "Foxy Fitzroy"
 	- Required ROS2 packages  
 		`rclcpp`  
