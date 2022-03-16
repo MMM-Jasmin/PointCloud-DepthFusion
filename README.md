@@ -1,5 +1,5 @@
 # DepthFusion - Smart Mirror Point Cloud Fusion Module
-The smart mirror platform was developed in the context of the Low Energy Toolset for Heterogeneous Computing ([LEGaTO](https://github.com/LEGaTO-SmartMirror)) project.  
+
 DepthFusion is a framework that extends the smart mirror by generating a mirror image of the user, based on a point cloud representation generated from color and depth images from two connected RealSense D455 cameras.  
 The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/foxy/index.html)) for distributed data centric communication across the two installed Nvidia Jetson Xavier AGX embedded computing units.
 
