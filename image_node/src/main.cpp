@@ -1,7 +1,7 @@
 // SYSTEM
-#include <cstdio>
-#include <csignal>
 #include <atomic>
+#include <csignal>
+#include <cstdio>
 // ROS2
 #include <rclcpp/rclcpp.hpp>
 
@@ -19,7 +19,8 @@
  * @param argument The command line argument to check for
  * @return True if command line argument exists, false otherwise
  */
-bool cmdArgExists(char** begin, char** end, const std::string& argument) {
+bool cmdArgExists(char** begin, char** end, const std::string& argument)
+{
 	return std::find(begin, end, argument) != end;
 }
 
@@ -30,11 +31,12 @@ bool cmdArgExists(char** begin, char** end, const std::string& argument) {
  * @param argument Command line argument to get the value for
  * @return Pointer to the command line argument value
  */
-char* getCmdArg(char** begin, char** end, const std::string& argument) {
+char* getCmdArg(char** begin, char** end, const std::string& argument)
+{
 	char** itr = std::find(begin, end, argument);
-	if (itr != end && ++itr != end) {
+	if (itr != end && ++itr != end)
 		return *itr;
-	}
+
 	return nullptr;
 }
 
@@ -42,7 +44,8 @@ char* getCmdArg(char** begin, char** end, const std::string& argument) {
  * @brief Handler for received process signals.
  * @param signum Code of the received signal
  */
-void signalHandler(int signum) {
+void signalHandler(int signum)
+{
 	std::cout << "+==========[ Signal " << signum << " Abort ]==========+" << std::endl;
 	//exit_request.store(true);
 }
@@ -53,7 +56,8 @@ void signalHandler(int signum) {
  * @param argv Given command line arguments
  * @return EXIT_SUCCESS (0) on clean exit, EXIT_FAILURE (1) on error state
  */
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 	signal(SIGINT, signalHandler);
 
 	std::cout << "+==========[ Image Node ]==========+" << std::endl;

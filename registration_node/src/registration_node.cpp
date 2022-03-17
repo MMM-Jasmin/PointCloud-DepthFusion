@@ -1,6 +1,6 @@
 // SYSTEM
-#include <iostream>
 #include <experimental/filesystem>
+#include <iostream>
 // ROS2
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -10,7 +10,9 @@
 /**
  * @brief Contructor.
  */
-RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOptions().use_intra_process_comms(true)) {
+RegistrationNode::RegistrationNode() :
+	Node("registration_node", rclcpp::NodeOptions().use_intra_process_comms(true))
+{
 	registration = new Registration();
 
 	this->declare_parameter("verbose", false);
@@ -24,8 +26,8 @@ RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOpt
 	this->declare_parameter("depth_scale_left", -1.0);
 	this->declare_parameter("depth_scale_right", -1.0);
 	this->declare_parameter("voxelsize", 0.001);
-	this->declare_parameter("roi_left", std::vector<long>({-1, -1, -1, -1}));
-	this->declare_parameter("roi_right", std::vector<long>({-1, -1, -1, -1}));
+	this->declare_parameter("roi_left", std::vector<long>({ -1, -1, -1, -1 }));
+	this->declare_parameter("roi_right", std::vector<long>({ -1, -1, -1, -1 }));
 
 	this->get_parameter("verbose", verbose);
 	this->get_parameter("qos_sensor_data", qos_sensor_data);
@@ -40,11 +42,11 @@ RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOpt
 	this->get_parameter("voxelsize", voxelsize);
 	std::vector<long> roi_vec;
 	this->get_parameter("roi_left", roi_vec);
-	this->roi_left = {static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
-	                  static_cast<int>(roi_vec[3])};
+	this->roi_left = { static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
+					   static_cast<int>(roi_vec[3]) };
 	this->get_parameter("roi_right", roi_vec);
-	this->roi_right = {static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
-	                   static_cast<int>(roi_vec[3])};
+	this->roi_right = { static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
+						static_cast<int>(roi_vec[3]) };
 
 	this->declare_parameter("publish_clouds", false);
 	this->get_parameter("publish_clouds", publish_clouds);
@@ -69,7 +71,8 @@ RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOpt
 	this->declare_parameter("max_iterations", 1000);
 	this->get_parameter("max_iterations", max_iterations);
 
-	if (verbose) {
+	if (verbose)
+	{
 		std::cout << "Quality of service:" << std::endl;
 		std::cout << " sensor data: " << qos_sensor_data << std::endl;
 		std::cout << " history depth: " << qos_history_depth << std::endl;
@@ -79,7 +82,8 @@ RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOpt
 	setResolution(resolution);
 	registration->setVoxelgridSize(voxelsize);
 
-	if (resolution / 2 < kernel_width || resolution / 2 > kernel_width) {
+	if (resolution / 2 < kernel_width || resolution / 2 > kernel_width)
+	{
 		registration->setKernelParameters(kernel_width, kernel_max_dist);
 	}
 }
@@ -87,9 +91,11 @@ RegistrationNode::RegistrationNode() : Node("registration_node", rclcpp::NodeOpt
 /**
  * @brief Destructor.
  */
-RegistrationNode::~RegistrationNode() {
+RegistrationNode::~RegistrationNode()
+{
 	// Save last icp transform
-	if (save_transform) {
+	if (save_transform)
+	{
 		saveTransform(last_transform, transform_filename);
 	}
 
@@ -99,16 +105,17 @@ RegistrationNode::~RegistrationNode() {
 /**
  * @brief Initialize registration node.
  */
-void RegistrationNode::init() {
+void RegistrationNode::init()
+{
 	package_share_directory = ament_index_cpp::get_package_share_directory("registration_node");
-	transform_filename = package_share_directory + "/config/transform.txt";
+	transform_filename      = package_share_directory + "/config/transform.txt";
 
 	// Quality of service
 	if (qos_sensor_data) qos_profile = rclcpp::SensorDataQoS();
 	qos_profile = qos_profile.keep_last(static_cast<size_t>(qos_history_depth));
 
 	rmw_qos_profile_t image_rmw_qos_profile = qos_profile.get_rmw_qos_profile();
-	rclcpp::QoS cloud_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
+	rclcpp::QoS cloud_qos_profile           = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
 
 	// Subscriptions
 	subscriber_depth_left.subscribe(this, topic_depth_left, image_rmw_qos_profile);
@@ -119,47 +126,50 @@ void RegistrationNode::init() {
 	// Synchronization
 	depth_sync = new ImageSync(ImageSyncPolicy(10), subscriber_depth_left, subscriber_depth_right);
 	camera_info_sync =
-	    new CameraInfoSync(CameraInfoSyncPolicy(10), subscriber_camerainfo_left, subscriber_camerainfo_right);
+		new CameraInfoSync(CameraInfoSyncPolicy(10), subscriber_camerainfo_left, subscriber_camerainfo_right);
 	camera_info_sync->registerCallback(&RegistrationNode::cameraInfoCallback, this);
 
 	// Transform publisher
 	std::string topic_transform = "/registration/transform";
-	publisher_transform = this->create_publisher<geometry_msgs::msg::TransformStamped>(topic_transform, 1);
+	publisher_transform         = this->create_publisher<geometry_msgs::msg::TransformStamped>(topic_transform, 1);
 
 	// Pointcloud publishers
-	std::string topic_target_cloud = "/registration/target_points";
+	std::string topic_target_cloud  = "/registration/target_points";
 	std::string topic_aligned_cloud = "/registration/aligned_points";
-	publisher_target_cloud = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_target_cloud, cloud_qos_profile);
+	publisher_target_cloud          = this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_target_cloud, cloud_qos_profile);
 	publisher_aligned_cloud =
-	    this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_aligned_cloud, cloud_qos_profile);
+		this->create_publisher<sensor_msgs::msg::PointCloud2>(topic_aligned_cloud, cloud_qos_profile);
 
 	// Init registration
-	registration->setMaximumIterations(max_iterations);         // library default: 64
-	registration->setRotationEpsilon(rotation_epsilon);         // libaray default: 2e-3
-	registration->setTranslationEpsilon(translation_epsilon);   // libaray default: 5e-4
-	registration->setEuclideanFitnessEpsilon(fitness_epsilon);  // library default: 1e-5
+	registration->setMaximumIterations(max_iterations);        // library default: 64
+	registration->setRotationEpsilon(rotation_epsilon);        // libaray default: 2e-3
+	registration->setTranslationEpsilon(translation_epsilon);  // libaray default: 5e-4
+	registration->setEuclideanFitnessEpsilon(fitness_epsilon); // library default: 1e-5
 
 	// Load transformation
-	if (load_transform) {
+	if (load_transform)
+	{
 		loadTransform(initial_transform, transform_filename);
 	}
 
 	// Turn 180 degree around z-axis for D455 mount
 	start_transform = Eigen::Affine3d::Identity();
-	if (cam_upside_down) {
+	if (cam_upside_down)
+	{
 		Eigen::Matrix3d rotation_180_z = Eigen::Matrix3d(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()));
 		start_transform.rotate(rotation_180_z);
 	}
 	initial_transform = start_transform;
 
 	// Set initial transformation manually
-	if (set_initial_transform) {
+	if (set_initial_transform)
+	{
 		Eigen::Vector3d initial_translation(0., 0., 0.);
 		Eigen::Vector3d initial_rotation_xyz_deg(0., 0., 0.);
 		Eigen::Matrix3d initial_rotation;
 		initial_rotation = Eigen::AngleAxisd(initial_rotation_xyz_deg(0) * M_PI / 180, Eigen::Vector3d::UnitX()) *
-		                   Eigen::AngleAxisd(initial_rotation_xyz_deg(1) * M_PI / 180, Eigen::Vector3d::UnitY()) *
-		                   Eigen::AngleAxisd(initial_rotation_xyz_deg(2) * M_PI / 180, Eigen::Vector3d::UnitZ());
+						   Eigen::AngleAxisd(initial_rotation_xyz_deg(1) * M_PI / 180, Eigen::Vector3d::UnitY()) *
+						   Eigen::AngleAxisd(initial_rotation_xyz_deg(2) * M_PI / 180, Eigen::Vector3d::UnitZ());
 		initial_transform = Eigen::Affine3d::Identity();
 		initial_transform.rotate(initial_rotation);
 		initial_transform.translate(initial_translation);
@@ -184,10 +194,11 @@ void RegistrationNode::init() {
  * @param initial_transform Initial source transformtation guess
  */
 void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target_depth_msg,
-                           const sensor_msgs::msg::Image::ConstSharedPtr& source_depth_msg,
-                           sensor_msgs::msg::CameraInfo& target_camerainfo,
-                           sensor_msgs::msg::CameraInfo& source_camerainfo, float depth_scale,
-                           Eigen::Affine3d& final_transform, const Eigen::Affine3d& initial_transform) {
+						   const sensor_msgs::msg::Image::ConstSharedPtr& source_depth_msg,
+						   sensor_msgs::msg::CameraInfo& target_camerainfo,
+						   sensor_msgs::msg::CameraInfo& source_camerainfo, float depth_scale,
+						   Eigen::Affine3d& final_transform, const Eigen::Affine3d& initial_transform)
+{
 	uint target_count = static_cast<uint>(target_camerainfo.width * target_camerainfo.height);
 	uint source_count = static_cast<uint>(source_camerainfo.width * source_camerainfo.height);
 
@@ -195,17 +206,21 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 	pcl::PointCloud<pcl::PointXYZ>::Ptr source_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
 	bool use_testdata = false;
-	if (use_testdata) {
+	if (use_testdata)
+	{
 		std::string target_testdata = package_share_directory + "/data/icp_testdata/bunny_scale1m.ply";
 		std::string source_testdata =
-		    package_share_directory + "/data/icp_testdata/bunny_scale1m_transformed_rot0.26rad15degy_trans0.5x.ply";
+			package_share_directory + "/data/icp_testdata/bunny_scale1m_transformed_rot0.26rad15degy_trans0.5x.ply";
 		pcl::io::loadPLYFile(target_testdata, *target_cloud);
 		pcl::io::loadPLYFile(source_testdata, *source_cloud);
 		target_count = static_cast<uint>(target_cloud->points.size());
 		source_count = static_cast<uint>(source_cloud->points.size());
-	} else {
+	}
+	else
+	{
 		auto timer_start = std::chrono::steady_clock::now();
-		if (verbose) {
+		if (verbose)
+		{
 			std::cout << "+-- Poincloud Deprojection" << std::endl;
 			std::cout << "| depth pixels:         " << target_depth_msg->width * target_depth_msg->height << std::endl;
 			std::cout << "| depth range:          [" << min_depth << ", " << max_depth << "]" << std::endl;
@@ -240,16 +255,18 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 		float* source_cloud_data = source_cloud->points.data()->_PointXYZ::data;
 		source_dev_cloud.copyToHost(source_cloud_data);
 
-		auto timer_end = std::chrono::steady_clock::now();
+		auto timer_end     = std::chrono::steady_clock::now();
 		auto timer_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(timer_end - timer_start);
-		if (verbose) {
+		if (verbose)
+		{
 			std::cout << "| time:        " << timer_elapsed.count() << " ms" << std::endl;
 			std::cout << "+--" << std::endl;
 		}
 	}
 
 	bool save_data = false;
-	if (save_data) {
+	if (save_data)
+	{
 		pcl::io::savePLYFileASCII(package_share_directory + "/data/cam_left_icp_cloud.ply", *target_cloud);
 		pcl::io::savePLYFileASCII(package_share_directory + "/data/cam_right_icp_cloud.ply", *source_cloud);
 		std::cout << "## Saved ply clouds" << std::endl;
@@ -262,41 +279,50 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 	registration->setTarget(target_cloud);
 	auto timer_start = std::chrono::steady_clock::now();
 	registration->icp(final_transform, euclidean_fitness, initial_transform);
-	auto timer_end = std::chrono::steady_clock::now();
+	auto timer_end      = std::chrono::steady_clock::now();
 	double icp_duration = std::chrono::duration_cast<std::chrono::milliseconds>(timer_end - timer_start).count();
 
 	// Discard transformation if fitness has not improved
-	if (discard_transform) {
+	if (discard_transform)
+	{
 		int x_angle_limit = 30;
 		int y_angle_limit = 2;
 		int z_angle_limit = 2;
 		if (cam_upside_down) y_angle_limit = 180 - y_angle_limit;
 		Eigen::Vector3d euler_angles = extractEulerAngles(final_transform.rotation());
-		bool angle_x_fit = (std::abs(rad2deg(euler_angles(0))) < x_angle_limit);
-		bool angle_y_fit = (std::abs(rad2deg(euler_angles(1))) < y_angle_limit);
-		bool angle_z_fit = (std::abs(rad2deg(euler_angles(2))) < z_angle_limit);
-		bool angles_fit = angle_x_fit && angle_y_fit && angle_z_fit;
-		if (verbose) {
+		bool angle_x_fit             = (std::abs(rad2deg(euler_angles(0))) < x_angle_limit);
+		bool angle_y_fit             = (std::abs(rad2deg(euler_angles(1))) < y_angle_limit);
+		bool angle_z_fit             = (std::abs(rad2deg(euler_angles(2))) < z_angle_limit);
+		bool angles_fit              = angle_x_fit && angle_y_fit && angle_z_fit;
+		if (verbose)
+		{
 			std::cout << "## euclidean_fitness = " << euclidean_fitness << std::endl;
 			std::cout << "## best_fitness = " << best_fitness << std::endl;
 			std::cout << "## angles_fit = " << angles_fit << std::endl;
 		}
-		if (euclidean_fitness < best_fitness && angles_fit) {
+		if (euclidean_fitness < best_fitness && angles_fit)
+		{
 			best_fitness = euclidean_fitness;
-		} else {
+		}
+		else
+		{
 			final_transform = initial_transform;
 			best_fitness *= 1.5;
-			if (verbose) {
+			if (verbose)
+			{
 				std::cout << "## Transformation discarded" << std::endl;
 			}
 		}
 	}
 
 	// Reset initial guess if fitness too high
-	if (reset_initial_guess) {
+	if (reset_initial_guess)
+	{
 		double fitness_limit = resolution * 10;
-		if (euclidean_fitness > fitness_limit) {
-			if (verbose) {
+		if (euclidean_fitness > fitness_limit)
+		{
+			if (verbose)
+			{
 				std::cout << "## Transform guess reset" << std::endl;
 			}
 			final_transform = start_transform;
@@ -304,26 +330,28 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 	}
 
 	// Publish clouds
-	if (publish_clouds) {
+	if (publish_clouds)
+	{
 		sensor_msgs::msg::PointCloud2::SharedPtr target_cloud_msg =
-		    sensor_msgs::msg::PointCloud2::SharedPtr(new sensor_msgs::msg::PointCloud2);
+			sensor_msgs::msg::PointCloud2::SharedPtr(new sensor_msgs::msg::PointCloud2);
 		pcl::toROSMsg(*target_cloud, *target_cloud_msg);
 		target_cloud_msg->header.frame_id = "camera_left_color_optical_frame";
-		target_cloud_msg->header.stamp = this->now();
+		target_cloud_msg->header.stamp    = this->now();
 		publisher_target_cloud->publish(*target_cloud_msg);
 
 		pcl::PointCloud<pcl::PointXYZ>::Ptr aligned_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 		registration->getAlignedCloud(aligned_cloud);
 		sensor_msgs::msg::PointCloud2::SharedPtr aligned_cloud_msg =
-		    sensor_msgs::msg::PointCloud2::SharedPtr(new sensor_msgs::msg::PointCloud2);
+			sensor_msgs::msg::PointCloud2::SharedPtr(new sensor_msgs::msg::PointCloud2);
 		pcl::toROSMsg(*aligned_cloud, *aligned_cloud_msg);
 		aligned_cloud_msg->header.frame_id = "camera_left_color_optical_frame";
-		aligned_cloud_msg->header.stamp = this->now();
+		aligned_cloud_msg->header.stamp    = this->now();
 		publisher_aligned_cloud->publish(*aligned_cloud_msg);
 	}
 
 	// Profiling
-	if (enable_profiling) {
+	if (enable_profiling)
+	{
 		std::vector<double> vec;
 		vec.push_back(euclidean_fitness);
 		vec.push_back(icp_duration);
@@ -331,16 +359,20 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 		vec.push_back(registration->getSourceSize());
 		profiling_vec.push_back(vec);
 
-		if (profiling_vec.size() == static_cast<unsigned>(profiling_size)) {
+		if (profiling_vec.size() == static_cast<unsigned>(profiling_size))
+		{
 			std::cout << "Write profiling file " << profiling_filename << std::endl;
 			std::ofstream profiling_file(profiling_filename);
-			for (unsigned i = 0; i < profiling_fields.size(); i++) {
+			for (unsigned i = 0; i < profiling_fields.size(); i++)
+			{
 				profiling_file << profiling_fields[i];
 				if (i != profiling_fields.size() - 1) profiling_file << ",";
 			}
 			profiling_file << "\n";
-			for (const auto& l : profiling_vec) {
-				for (unsigned i = 0; i < l.size(); i++) {
+			for (const auto& l : profiling_vec)
+			{
+				for (unsigned i = 0; i < l.size(); i++)
+				{
 					profiling_file << l[i];
 					if (i != l.size() - 1) profiling_file << ",";
 				}
@@ -357,63 +389,80 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
  * @param depth_msg_right Right depth frame message
  */
 void RegistrationNode::depthSyncCallback(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg_left,
-                                         const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg_right) {
+										 const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg_right)
+{
 	if (exit_request->load()) return;
 	subscriber_depth_left.unsubscribe();
 	subscriber_depth_right.unsubscribe();
 
-	int64_t time_now = this->now().nanoseconds();
+	int64_t time_now                = this->now().nanoseconds();
 	double time_since_last_callback = (time_now - last_callback_timestamp) / 1e6;
-	if (verbose) {
+	if (verbose)
+	{
 		std::cout << "Time since last registration callback = " << time_since_last_callback << std::endl;
 	}
 
 	last_callback_timestamp = time_now;
 	Eigen::Affine3d final_transform;
 
-	if (adjust_resolution) {
+	if (adjust_resolution)
+	{
 		setResolution(current_resolution);
 		registration->setVoxelgridSize(current_voxelsize);
-	} else {
+	}
+	else
+	{
 		setResolution(resolution);
 		registration->setVoxelgridSize(voxelsize);
 	}
 
 	// Iterative closest point
 	icp(depth_msg_left, depth_msg_right, camera_info_left, camera_info_right, depth_scale, final_transform,
-	    initial_transform);
-	last_transform = final_transform;
+		initial_transform);
+	last_transform    = final_transform;
 	initial_transform = final_transform;
 
-	if (adjust_resolution) {
+	if (adjust_resolution)
+	{
 		// In initial phase start with low resolution (high resolution value in meters)
-		if (initial_phase) {
+		if (initial_phase)
+		{
 			// Decrease resolution
-			if (current_resolution - resolution_step > resolution) {
+			if (current_resolution - resolution_step > resolution)
+			{
 				current_resolution -= resolution_step;
-			} else {
+			}
+			else
+			{
 				current_resolution = resolution;
 			}
 			// Decrease voxel size
-			if (current_resolution * voxel_resolution_factor > voxelsize) {
+			if (current_resolution * voxel_resolution_factor > voxelsize)
+			{
 				current_voxelsize = voxel_resolution_factor * current_resolution;
-			} else {
+			}
+			else
+			{
 				current_voxelsize = voxelsize;
 			}
-			if (!(current_resolution > resolution) && !(current_voxelsize > voxelsize)) {
+			if (!(current_resolution > resolution) && !(current_voxelsize > voxelsize))
+			{
 				initial_phase = false;
 			}
 		}
 	}
 
 	// Publish transform
-	try {
+	try
+	{
 		geometry_msgs::msg::TransformStamped transform_msg = tf2::eigenToTransform(final_transform);
-		transform_msg.header.stamp = this->now();
-		transform_msg.child_frame_id = "camera_right_color_optical_frame";
-		transform_msg.header.frame_id = "camera_left_color_optical_frame";
+		transform_msg.header.stamp                         = this->now();
+		transform_msg.child_frame_id                       = "camera_right_color_optical_frame";
+		transform_msg.header.frame_id                      = "camera_left_color_optical_frame";
 		publisher_transform->publish(transform_msg);
-	} catch (tf2::TransformException& ex) {
+	}
+	catch (tf2::TransformException& ex)
+	{
 		std::cout << "Publish transfrom error: " << ex.what() << std::endl;
 	}
 }
@@ -424,11 +473,13 @@ void RegistrationNode::depthSyncCallback(const sensor_msgs::msg::Image::ConstSha
  * @param camera_info_right Right camera intrinsics message
  */
 void RegistrationNode::cameraInfoCallback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_left,
-                                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_right) {
-	if (verbose) {
+										  const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_right)
+{
+	if (verbose)
+	{
 		std::cout << "Camera info messages received" << std::endl;
 	}
-	this->camera_info_left = *camera_info_left;
+	this->camera_info_left  = *camera_info_left;
 	this->camera_info_right = *camera_info_right;
 	subscriber_camerainfo_left.unsubscribe();
 	subscriber_camerainfo_right.unsubscribe();
@@ -457,20 +508,24 @@ void RegistrationNode::cameraInfoCallback(const sensor_msgs::msg::CameraInfo::Co
  * @param depth_scale Factor to convert camera depth unit to meters
  */
 void RegistrationNode::deprojectDepthCpu(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-                                         const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
-                                         sensor_msgs::msg::CameraInfo& camerainfo, float depth_scale) {
+										 const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
+										 sensor_msgs::msg::CameraInfo& camerainfo, float depth_scale)
+{
 	Intrinsics intrinsics;
 	cameraInfo2Intrinsics(camerainfo, intrinsics);
 	const uint16_t* depth_img = reinterpret_cast<const uint16_t*>(&depth_msg->data[0]);
 
 	uint dropped_depth_values = 0;
-	int row_step = depth_msg->step / sizeof(uint16_t);
-	for (uint j = 0; j < depth_msg->height; j++, depth_img += row_step) {
-		for (uint i = 0; i < depth_msg->width; i++) {
+	int row_step              = depth_msg->step / sizeof(uint16_t);
+	for (uint j = 0; j < depth_msg->height; j++, depth_img += row_step)
+	{
+		for (uint i = 0; i < depth_msg->width; i++)
+		{
 			uint16_t d = depth_img[i];
 
 			float scaled_depth = float(d) * depth_scale;
-			if (scaled_depth <= min_depth || scaled_depth >= max_depth) {
+			if (scaled_depth <= min_depth || scaled_depth >= max_depth)
+			{
 				dropped_depth_values++;
 				continue;
 			}
@@ -485,7 +540,8 @@ void RegistrationNode::deprojectDepthCpu(pcl::PointCloud<pcl::PointXYZ>::Ptr clo
 		}
 	}
 
-	if (verbose) {
+	if (verbose)
+	{
 		std::cout << "| dropped depth values: " << dropped_depth_values << std::endl;
 		std::cout << "| result cloud size:    " << cloud->size() << std::endl;
 	}
@@ -494,9 +550,10 @@ void RegistrationNode::deprojectDepthCpu(pcl::PointCloud<pcl::PointXYZ>::Ptr clo
 /**
  * @brief Declare ros node parameters.
  */
-void RegistrationNode::declareParameters() {
+void RegistrationNode::declareParameters()
+{
 	parameters_callback_handle = this->add_on_set_parameters_callback(
-	    std::bind(&RegistrationNode::parametersCallback, this, std::placeholders::_1));
+		std::bind(&RegistrationNode::parametersCallback, this, std::placeholders::_1));
 
 	this->declare_parameter("verbose", false);
 	this->declare_parameter("qos_sensor_data", false);
@@ -509,8 +566,8 @@ void RegistrationNode::declareParameters() {
 	this->declare_parameter("depth_scale_left", -1.0);
 	this->declare_parameter("depth_scale_right", -1.0);
 	this->declare_parameter("voxelsize", 0.001);
-	this->declare_parameter("roi_left", std::vector<long>({-1, -1, -1, -1}));
-	this->declare_parameter("roi_right", std::vector<long>({-1, -1, -1, -1}));
+	this->declare_parameter("roi_left", std::vector<long>({ -1, -1, -1, -1 }));
+	this->declare_parameter("roi_right", std::vector<long>({ -1, -1, -1, -1 }));
 }
 
 /**
@@ -519,19 +576,25 @@ void RegistrationNode::declareParameters() {
  * @return Result of parameter setting
  */
 rcl_interfaces::msg::SetParametersResult RegistrationNode::parametersCallback(
-    const std::vector<rclcpp::Parameter>& parameters) {
-	for (const auto& param : parameters) {
+	const std::vector<rclcpp::Parameter>& parameters)
+{
+	for (const auto& param : parameters)
+	{
 		std::string parameter_string = param.get_name();
 
 		// Tokenize parameter string with '.' as delimeter
 		std::vector<std::string> parameter_string_tokens;
 		size_t pos = 0;
-		while (pos != std::string::npos) {
+		while (pos != std::string::npos)
+		{
 			size_t next_pos = parameter_string.find('.', pos);
-			if (next_pos != std::string::npos) {
+			if (next_pos != std::string::npos)
+			{
 				parameter_string_tokens.push_back(parameter_string.substr(pos, next_pos - pos));
 				pos = next_pos + 1;
-			} else {
+			}
+			else
+			{
 				parameter_string_tokens.push_back(parameter_string.substr(pos, std::string::npos));
 				pos = std::string::npos;
 			}
@@ -539,60 +602,90 @@ rcl_interfaces::msg::SetParametersResult RegistrationNode::parametersCallback(
 		std::string parameter_name = parameter_string_tokens.back();
 
 		// Set node parameters from yaml config
-		if (parameter_string_tokens.size() == 1) {
-			if (parameter_name == "verbose") {
+		if (parameter_string_tokens.size() == 1)
+		{
+			if (parameter_name == "verbose")
+			{
 				this->verbose = param.as_bool();
-			} else if (parameter_name == "qos_sensor_data") {
+			}
+			else if (parameter_name == "qos_sensor_data")
+			{
 				this->qos_sensor_data = param.as_bool();
-			} else if (parameter_name == "qos_history_depth") {
+			}
+			else if (parameter_name == "qos_history_depth")
+			{
 				this->qos_history_depth = static_cast<int>(param.as_int());
-			} else if (parameter_name == "resolution") {
+			}
+			else if (parameter_name == "resolution")
+			{
 				this->resolution = param.as_double();
 				if (debug) std::cout << "set resolution = " << resolution << std::endl;
 				setResolution(resolution);
-			} else if (parameter_name == "spin_rate") {
+			}
+			else if (parameter_name == "spin_rate")
+			{
 				this->spin_rate = param.as_double();
 				if (debug) std::cout << "set spin_rate = " << spin_rate << std::endl;
-			} else if (parameter_name == "min_depth") {
+			}
+			else if (parameter_name == "min_depth")
+			{
 				this->min_depth = static_cast<float>(param.as_double());
 				if (debug) std::cout << "set min_depth = " << min_depth << std::endl;
-			} else if (parameter_name == "max_depth") {
+			}
+			else if (parameter_name == "max_depth")
+			{
 				this->max_depth = static_cast<float>(param.as_double());
 				if (debug) std::cout << "set max_depth = " << max_depth << std::endl;
-			} else if (parameter_name == "depth_scale") {
+			}
+			else if (parameter_name == "depth_scale")
+			{
 				this->depth_scale = static_cast<float>(param.as_double());
 				if (debug) std::cout << "set depth_scale = " << depth_scale << std::endl;
-			} else if (parameter_name == "depth_scale_left") {
+			}
+			else if (parameter_name == "depth_scale_left")
+			{
 				this->depth_scale_left = static_cast<float>(param.as_double());
 				if (debug) std::cout << "set depth_scale_left = " << depth_scale_left << std::endl;
-			} else if (parameter_name == "depth_scale_right") {
+			}
+			else if (parameter_name == "depth_scale_right")
+			{
 				this->depth_scale_right = static_cast<float>(param.as_double());
 				if (debug) std::cout << "set depth_scale_right = " << depth_scale_right << std::endl;
-			} else if (parameter_name == "voxelsize") {
+			}
+			else if (parameter_name == "voxelsize")
+			{
 				this->voxelsize = param.as_double();
 				registration->setVoxelgridSize(voxelsize);
 				if (debug) std::cout << "set voxelsize = " << voxelsize << std::endl;
-			} else if (parameter_name == "roi_left") {
+			}
+			else if (parameter_name == "roi_left")
+			{
 				std::vector<long> roi_vec = param.as_integer_array();
-				if (roi_vec.size() == 4) {
-					this->roi_left = {static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
-					                  static_cast<int>(roi_vec[3])};
-				} else
-					this->roi_left = {-1, -1, -1, -1};
-			} else if (parameter_name == "roi_right") {
+				if (roi_vec.size() == 4)
+				{
+					this->roi_left = { static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
+									   static_cast<int>(roi_vec[3]) };
+				}
+				else
+					this->roi_left = { -1, -1, -1, -1 };
+			}
+			else if (parameter_name == "roi_right")
+			{
 				std::vector<long> roi_vec = param.as_integer_array();
-				if (roi_vec.size() == 4) {
-					this->roi_right = {static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
-					                   static_cast<int>(roi_vec[3])};
-				} else
-					this->roi_right = {-1, -1, -1, -1};
+				if (roi_vec.size() == 4)
+				{
+					this->roi_right = { static_cast<int>(roi_vec[0]), static_cast<int>(roi_vec[1]), static_cast<int>(roi_vec[2]),
+										static_cast<int>(roi_vec[3]) };
+				}
+				else
+					this->roi_right = { -1, -1, -1, -1 };
 			}
 		}
 	}
 
 	rcl_interfaces::msg::SetParametersResult result;
 	result.successful = true;
-	result.reason = "success";
+	result.reason     = "success";
 	return result;
 }
 
@@ -602,27 +695,32 @@ rcl_interfaces::msg::SetParametersResult RegistrationNode::parametersCallback(
  * @param filename Filename
  * @return True on success
  */
-bool RegistrationNode::saveTransform(Eigen::Affine3d& transform, const std::string filename) {
+bool RegistrationNode::saveTransform(Eigen::Affine3d& transform, const std::string filename)
+{
 	std::ofstream file;
 	file.open(filename, std::ios::out | std::ios::trunc);
 
 	const static Eigen::IOFormat matrix_format(Eigen::FullPrecision, Eigen::DontAlignCols, " ", "\n");
 
-	if (debug) {
+	if (debug)
+	{
 		std::cout << "Saving transform matrix:" << std::endl;
 		std::cout << transform.matrix() << std::endl;
 	}
 
-	if (file.is_open()) {
+	if (file.is_open())
+	{
 		file << transform.matrix().format(matrix_format);
 		file.close();
 	}
-	if (file.bad()) {
+	if (file.bad())
+	{
 		file.close();
 		std::cout << "Error saving icp transform file: " << filename << std::endl;
 		return false;
 	}
-	if (verbose) {
+	if (verbose)
+	{
 		std::cout << "Icp transform file saved: " << filename << std::endl;
 	}
 	return true;
@@ -634,26 +732,33 @@ bool RegistrationNode::saveTransform(Eigen::Affine3d& transform, const std::stri
  * @param filename Filename
  * @return True on success
  */
-bool RegistrationNode::loadTransform(Eigen::Affine3d& transform, const std::string filename) {
+bool RegistrationNode::loadTransform(Eigen::Affine3d& transform, const std::string filename)
+{
 	std::ifstream file;
-	bool matrix_bad = false;
+	bool matrix_bad  = false;
 	bool file_exists = std::experimental::filesystem::exists(filename);
-	if (file_exists) {
+	if (file_exists)
+	{
 		file.open(filename, std::ios::in);
-	} else {
+	}
+	else
+	{
 		std::cout << "Transform file does not exist: " << filename << std::endl;
 	}
 
-	if (file.is_open()) {
+	if (file.is_open())
+	{
 		std::vector<double> matrix_entries;
 		std::string matrix_row_string;
 		std::string matrix_entry;
 		int matrix_row_number = 0;
 		int matrix_col_number = 0;
 
-		while (getline(file, matrix_row_string)) {
+		while (getline(file, matrix_row_string))
+		{
 			std::stringstream matrix_row_stringstream(matrix_row_string);
-			while (getline(matrix_row_stringstream, matrix_entry, ' ')) {
+			while (getline(matrix_row_stringstream, matrix_entry, ' '))
+			{
 				matrix_entries.push_back(std::stod(matrix_entry));
 				matrix_col_number++;
 				if (matrix_col_number >= 4) break;
@@ -665,17 +770,19 @@ bool RegistrationNode::loadTransform(Eigen::Affine3d& transform, const std::stri
 		file.close();
 
 		Eigen::Matrix4d matrix = Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor>>(matrix_entries.data());
-		transform.matrix() = matrix;
+		transform.matrix()     = matrix;
 
 		if (matrix_row_number < 3) matrix_bad = true;
 	}
-	if (!file_exists || matrix_bad || file.bad()) {
+	if (!file_exists || matrix_bad || file.bad())
+	{
 		if (file.is_open()) file.close();
 		transform.matrix().setIdentity();
 		std::cout << "Initial transform set to identity" << std::endl;
 		return false;
 	}
-	if (verbose) {
+	if (verbose)
+	{
 		std::cout << "Icp transform file loaded: " << filename << std::endl;
 	}
 	return true;
@@ -686,15 +793,17 @@ bool RegistrationNode::loadTransform(Eigen::Affine3d& transform, const std::stri
  * @param camerainfo Camera intrinsics message
  * @param intrinsics Intrinsics structure
  */
-void RegistrationNode::cameraInfo2Intrinsics(const sensor_msgs::msg::CameraInfo& camerainfo, Intrinsics& intrinsics) {
-	intrinsics.width = static_cast<int>(camerainfo.width);
+void RegistrationNode::cameraInfo2Intrinsics(const sensor_msgs::msg::CameraInfo& camerainfo, Intrinsics& intrinsics)
+{
+	intrinsics.width  = static_cast<int>(camerainfo.width);
 	intrinsics.height = static_cast<int>(camerainfo.height);
-	intrinsics.ppx = static_cast<int>(camerainfo.k[2]);
-	intrinsics.ppy = static_cast<int>(camerainfo.k[5]);
-	intrinsics.fx = static_cast<int>(camerainfo.k[0]);
-	intrinsics.fy = static_cast<int>(camerainfo.k[4]);
-	intrinsics.model = Distortion::DISTORTION_BROWN_CONRADY;
-	for (uint i = 0; i < 5; i++) {
+	intrinsics.ppx    = static_cast<int>(camerainfo.k[2]);
+	intrinsics.ppy    = static_cast<int>(camerainfo.k[5]);
+	intrinsics.fx     = static_cast<int>(camerainfo.k[0]);
+	intrinsics.fy     = static_cast<int>(camerainfo.k[4]);
+	intrinsics.model  = Distortion::DISTORTION_BROWN_CONRADY;
+	for (uint i = 0; i < 5; i++)
+	{
 		intrinsics.coeffs[i] = static_cast<float>(camerainfo.d[i]);
 	}
 }
@@ -703,8 +812,9 @@ void RegistrationNode::cameraInfo2Intrinsics(const sensor_msgs::msg::CameraInfo&
  * @brief Set icp algorithm resolution.
  * @param resolution Icp algorithm resolution
  */
-void RegistrationNode::setResolution(double resolution) {
-	double kernel_width = resolution / 2.;
+void RegistrationNode::setResolution(double resolution)
+{
+	double kernel_width    = resolution / 2.;
 	double kernel_max_dist = kernel_width * 5;
 	registration->setResolution(resolution);
 	registration->setKernelParameters(kernel_width, kernel_max_dist);
@@ -713,16 +823,18 @@ void RegistrationNode::setResolution(double resolution) {
 /**
  * @brief Initialize timer for registration callback.
  */
-void RegistrationNode::initTimer() {
+void RegistrationNode::initTimer()
+{
 	this->timer = this->create_wall_timer(std::chrono::nanoseconds(static_cast<int64_t>(1e9 / (spin_rate))),
-	                                      std::bind(&RegistrationNode::timerCallback, this));
+										  std::bind(&RegistrationNode::timerCallback, this));
 	std::cout << "+==========[ Registration Node Started ]==========+" << std::endl;
 }
 
 /**
  * @brief Registration timer callback resubscibes to depth images.
  */
-void RegistrationNode::timerCallback() {
+void RegistrationNode::timerCallback()
+{
 	if (qos_sensor_data) qos_profile = rclcpp::SensorDataQoS();
 	qos_profile = qos_profile.keep_last(static_cast<size_t>(qos_history_depth));
 

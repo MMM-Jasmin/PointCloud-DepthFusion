@@ -7,10 +7,12 @@
  * @param msg Message to display on error
  * @param sync True to activate cuda device synchronization
  */
-void checkError(const char* msg, bool sync) {
+void checkError(const char* msg, bool sync)
+{
 	if (sync) cudaDeviceSynchronize();
 	cudaError_t error = cudaGetLastError();
-	if (error != cudaSuccess) {
+	if (error != cudaSuccess)
+	{
 		std::cerr << "Cuda error: " << msg << " failed: " << cudaGetErrorString(error) << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -22,9 +24,11 @@ void checkError(const char* msg, bool sync) {
  * @param msg Message to display on error
  * @param sync True to activate cuda device synchronization
  */
-void checkError(cudaError_t error, const char* msg, bool sync) {
+void checkError(cudaError_t error, const char* msg, bool sync)
+{
 	if (sync) cudaDeviceSynchronize();
-	if (error != cudaSuccess) {
+	if (error != cudaSuccess)
+	{
 		std::cerr << "Cuda error: " << msg << " failed: " << cudaGetErrorString(error) << std::endl;
 		exit(EXIT_FAILURE);
 	}
@@ -36,9 +40,11 @@ void checkError(cudaError_t error, const char* msg, bool sync) {
  * @param msg Message to display on error
  * @param sync True to activate cuda device synchronization
  */
-void checkNppError(NppStatus error, const char* msg, bool sync) {
+void checkNppError(NppStatus error, const char* msg, bool sync)
+{
 	if (sync) cudaDeviceSynchronize();
-	if (error != NPP_NO_ERROR) {
+	if (error != NPP_NO_ERROR)
+	{
 		std::cerr << "Cuda npp error: " << msg << " failed: " << error << std::endl;
 		exit(EXIT_FAILURE);
 	}

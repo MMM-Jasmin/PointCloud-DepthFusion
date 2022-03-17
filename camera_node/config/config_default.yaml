@@ -20,7 +20,8 @@ camera_left:
     # Align depth to color image
     use_rs_align: true
     # Camera serial number
-    camera_serial_no: "141322250659"
+    camera_serial_no: "806312060492"
+    #camera_serial_no: "141322250659"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
     # Profiling configuration

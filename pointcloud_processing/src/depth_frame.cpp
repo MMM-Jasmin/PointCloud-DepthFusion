@@ -1,6 +1,6 @@
 // PROJECT
-#include "kernels.cuh"
 #include "depth_frame.h"
+#include "kernels.cuh"
 
 /**
  * @brief Constuctor
@@ -10,15 +10,19 @@ DepthFrame::DepthFrame() {}
 /**
  * @brief Destructor
  */
-DepthFrame::~DepthFrame() { free(); }
+DepthFrame::~DepthFrame()
+{
+	free();
+}
 
 /**
  * @brief Allocate memory for frame, mask and intrinsics.
  * @param intrinsics Depth frame intrinsics
  * @param stream Cuda stream
  */
-void DepthFrame::allocate(const Intrinsics intrinsics, cudaStream_t& stream) {
-	this->stream = stream;
+void DepthFrame::allocate(const Intrinsics intrinsics, cudaStream_t& stream)
+{
+	this->stream     = stream;
 	this->intrinsics = intrinsics;
 
 	free();
@@ -26,21 +30,21 @@ void DepthFrame::allocate(const Intrinsics intrinsics, cudaStream_t& stream) {
 	pixel_count = static_cast<unsigned>(this->intrinsics.width * this->intrinsics.height);
 
 	checkError(cudaMalloc(&dev_depth, static_cast<unsigned>(pixel_count) * sizeof(uint16_t)),
-	           "DepthFrame cudaMalloc dev_depth");
+			   "DepthFrame cudaMalloc dev_depth");
 	checkError(cudaMalloc(&dev_intrinsics, sizeof(Intrinsics)), "DepthFrame cudaMalloc dev_intrinsics");
 
 	checkError(cudaMemcpyAsync(dev_intrinsics, &this->intrinsics, sizeof(Intrinsics), cudaMemcpyHostToDevice, stream),
-	           "DepthFrame cudaMemcpy intrinsics to dev_intrinsics");
+			   "DepthFrame cudaMemcpy intrinsics to dev_intrinsics");
 
 	checkError(cudaMalloc(&dev_indices, static_cast<uint>(pixel_count) * sizeof(uint)),
-	           "DepthFrame cudaMalloc dev_indices");
+			   "DepthFrame cudaMalloc dev_indices");
 
 	checkError(cudaMalloc(&dev_mask, static_cast<uint>(pixel_count) * sizeof(uint8_t)), "DepthFrame cudaMalloc dev_mask");
 	checkError(cudaMalloc(&dev_mask_buffer, static_cast<uint>(pixel_count) * sizeof(uint8_t)),
-	           "DepthFrame cudaMalloc dev_mask_buffer");
+			   "DepthFrame cudaMalloc dev_mask_buffer");
 
 	checkError(cudaMemset(dev_mask, 0, static_cast<uint>(pixel_count) * sizeof(bool)),
-	           "DepthFrame cudaMemset cam.dev_mask");
+			   "DepthFrame cudaMemset cam.dev_mask");
 
 	checkNppError(nppGetStreamContext(&npp_context), "DepthFrame nppGetStreamContext");
 	npp_context.hStream = this->stream;
@@ -55,10 +59,11 @@ void DepthFrame::allocate(const Intrinsics intrinsics, cudaStream_t& stream) {
  * @param stream Cuda stream
  */
 void DepthFrame::allocateUnaligned(const Intrinsics intrinsics_unaligned, const Extrinsics extrinsics,
-                                   cudaStream_t& stream) {
-	this->stream = stream;
+								   cudaStream_t& stream)
+{
+	this->stream               = stream;
 	this->intrinsics_unaligned = intrinsics_unaligned;
-	this->extrinsics = extrinsics;
+	this->extrinsics           = extrinsics;
 
 	if (dev_depth_unaligned != nullptr) cudaFree(dev_depth_unaligned);
 	if (dev_intrinsics_unaligned != nullptr) cudaFree(dev_intrinsics_unaligned);
@@ -68,27 +73,29 @@ void DepthFrame::allocateUnaligned(const Intrinsics intrinsics_unaligned, const 
 	pixel_count_unaligned = static_cast<unsigned>(this->intrinsics_unaligned.width * this->intrinsics_unaligned.height);
 
 	checkError(cudaMalloc(&dev_depth_unaligned, static_cast<unsigned>(pixel_count_unaligned) * sizeof(uint16_t)),
-	           "DepthFrame cudaMalloc dev_depth_unaligned");
+			   "DepthFrame cudaMalloc dev_depth_unaligned");
 
 	checkError(cudaMalloc(&dev_intrinsics_unaligned, sizeof(Intrinsics)),
-	           "DepthFrame cudaMalloc dev_intrinsics_unaligned");
+			   "DepthFrame cudaMalloc dev_intrinsics_unaligned");
 	checkError(cudaMemcpyAsync(dev_intrinsics_unaligned, &this->intrinsics_unaligned, sizeof(Intrinsics),
-	                           cudaMemcpyHostToDevice, stream),
-	           "DepthFrame cudaMemcpy intrinsics_unaligned to dev_intrinsics_unaligned");
+							   cudaMemcpyHostToDevice, stream),
+			   "DepthFrame cudaMemcpy intrinsics_unaligned to dev_intrinsics_unaligned");
 
 	checkError(cudaMalloc(&dev_extrinsics, sizeof(Extrinsics)), "DepthFrame cudaMalloc dev_extrinsics");
 	checkError(cudaMemcpyAsync(dev_extrinsics, &this->extrinsics, sizeof(Extrinsics), cudaMemcpyHostToDevice, stream),
-	           "DepthFrame cudaMemcpy extrinsics to dev_extrinsics");
+			   "DepthFrame cudaMemcpy extrinsics to dev_extrinsics");
 
 	checkError(cudaMalloc(&dev_pixel_map, static_cast<unsigned int>(pixel_count_unaligned) * 2 * sizeof(int2)),
-	           "DepthFrame cudaMalloc dev_pixel_map");
+			   "DepthFrame cudaMalloc dev_pixel_map");
 }
 
 /**
  * @brief Free allocated memory.
  */
-void DepthFrame::free() {
-	if (is_allocated) {
+void DepthFrame::free()
+{
+	if (is_allocated)
+	{
 		if (dev_depth != nullptr) cudaFree(dev_depth);
 		if (dev_intrinsics != nullptr) cudaFree(dev_intrinsics);
 	}
@@ -98,26 +105,29 @@ void DepthFrame::free() {
  * @brief Copy depth frame from host to gpu.
  * @param frame Depth frame source
  */
-void DepthFrame::copyToDevice(const uint16_t* frame) {
-	if (save_images) {
+void DepthFrame::copyToDevice(const uint16_t* frame)
+{
+	if (save_images)
+	{
 		std::string filename = filepath + "/" + fileprefix + "_depth_host_input.png";
 		pcl::io::saveShortPNGFile(filename, frame, intrinsics.width, intrinsics.height, 1);
 		// std::cout << "saved depth image to: " << filename << std::endl;
 	}
 
 	checkError(cudaMemcpyAsync(dev_depth, frame, static_cast<uint>(pixel_count) * sizeof(uint16_t),
-	                           cudaMemcpyHostToDevice, stream),
-	           "DepthFrame cudaMemcpy frame to dev_depth");
+							   cudaMemcpyHostToDevice, stream),
+			   "DepthFrame cudaMemcpy frame to dev_depth");
 }
 
 /**
  * @brief Copy depth frame from gpu to host
  * @param host_frame Host frame destination
  */
-void DepthFrame::copyToHost(uint16_t* host_frame) {
+void DepthFrame::copyToHost(uint16_t* host_frame)
+{
 	checkError(cudaMemcpyAsync(host_frame, dev_depth, static_cast<uint>(pixel_count) * sizeof(uint16_t),
-	                           cudaMemcpyDeviceToHost, stream),
-	           "DepthFrame cudaMemcpy dev_depth to host_frame");
+							   cudaMemcpyDeviceToHost, stream),
+			   "DepthFrame cudaMemcpy dev_depth to host_frame");
 	cudaStreamSynchronize(stream);
 }
 
@@ -125,11 +135,12 @@ void DepthFrame::copyToHost(uint16_t* host_frame) {
  * @brief Copy unaligned depth frame from host to gpu.
  * @param frame_unaligned Unaligned depth frame source
  */
-void DepthFrame::copyUnalignedToDevice(const uint16_t* frame_unaligned) {
+void DepthFrame::copyUnalignedToDevice(const uint16_t* frame_unaligned)
+{
 	checkError(
-	    cudaMemcpyAsync(dev_depth_unaligned, frame_unaligned, static_cast<uint>(pixel_count_unaligned) * sizeof(uint16_t),
-	                    cudaMemcpyHostToDevice, stream),
-	    "DepthFrame cudaMemcpy frame_unaligned to dev_depth_unaligned");
+		cudaMemcpyAsync(dev_depth_unaligned, frame_unaligned, static_cast<uint>(pixel_count_unaligned) * sizeof(uint16_t),
+						cudaMemcpyHostToDevice, stream),
+		"DepthFrame cudaMemcpy frame_unaligned to dev_depth_unaligned");
 }
 
 /**
@@ -139,8 +150,9 @@ void DepthFrame::copyUnalignedToDevice(const uint16_t* frame_unaligned) {
  * @param depth_scale Factor to convert camera depth unit to meters
  * @param roi Region of interest in pixels: [left, top, width, height]
  */
-void DepthFrame::filter(const float min_depth, const float max_depth, const float depth_scale, const int roi[4]) {
-	const unsigned width = static_cast<unsigned>(intrinsics.width);
+void DepthFrame::filter(const float min_depth, const float max_depth, const float depth_scale, const int roi[4])
+{
+	const unsigned width  = static_cast<unsigned>(intrinsics.width);
 	const unsigned height = static_cast<unsigned>(intrinsics.height);
 	if (save_images) saveDepthImage(filepath + "/" + fileprefix + "_depth_input.png");
 
@@ -175,7 +187,8 @@ void DepthFrame::filter(const float min_depth, const float max_depth, const floa
  * @param filepath Base file path
  * @param fileprefix Image file prefix
  */
-void DepthFrame::setSaveImages(bool save_images, std::string filepath, std::string fileprefix) {
+void DepthFrame::setSaveImages(bool save_images, std::string filepath, std::string fileprefix)
+{
 	this->save_images = save_images;
 	if (filepath != "") this->filepath = filepath;
 	this->fileprefix = fileprefix;
@@ -185,13 +198,14 @@ void DepthFrame::setSaveImages(bool save_images, std::string filepath, std::stri
  * @brief Save depth frame to file.
  * @param filename Image filename
  */
-void DepthFrame::saveDepthImage(const std::string filename) {
-	uint image_bytes = static_cast<unsigned>(intrinsics.width * intrinsics.height) * sizeof(uint16_t);
+void DepthFrame::saveDepthImage(const std::string filename)
+{
+	uint image_bytes     = static_cast<unsigned>(intrinsics.width * intrinsics.height) * sizeof(uint16_t);
 	uint16_t* host_image = nullptr;
 	checkError(cudaMallocHost(&host_image, image_bytes), "cudaMallocHost host_image");
 
 	checkError(cudaMemcpy(host_image, dev_depth, image_bytes, cudaMemcpyDeviceToHost),
-	           "DepthFrame saveDepthImage cudaMemcpy dev_depth to host_image");
+			   "DepthFrame saveDepthImage cudaMemcpy dev_depth to host_image");
 	cudaStreamSynchronize(stream);
 	pcl::io::saveShortPNGFile(filename, host_image, intrinsics.width, intrinsics.height, 1);
 }
@@ -200,14 +214,15 @@ void DepthFrame::saveDepthImage(const std::string filename) {
  * @brief Save frame mask to file.
  * @param filename Image filename
  */
-void DepthFrame::saveMaskImage(const std::string filename) {
+void DepthFrame::saveMaskImage(const std::string filename)
+{
 	cudaStreamSynchronize(stream);
-	uint image_bytes = static_cast<unsigned>(intrinsics.width * intrinsics.height) * sizeof(uint8_t);
+	uint image_bytes    = static_cast<unsigned>(intrinsics.width * intrinsics.height) * sizeof(uint8_t);
 	uint8_t* host_image = nullptr;
 	checkError(cudaMallocHost(&host_image, image_bytes), "cudaMallocHost host_image");
 
 	checkError(cudaMemcpy(host_image, dev_mask, image_bytes, cudaMemcpyDeviceToHost),
-	           "DepthFrame saveMaskImage cudaMemcpy dev_mask to host_image");
+			   "DepthFrame saveMaskImage cudaMemcpy dev_mask to host_image");
 	cudaStreamSynchronize(stream);
 	pcl::io::saveCharPNGFile(filename, host_image, intrinsics.width, intrinsics.height, 1);
 }

@@ -15,8 +15,9 @@
 /**
  * @brief Rgb color frame class.
  */
-class ColorFrame {
- public:
+class ColorFrame
+{
+public:
 	ColorFrame();
 	~ColorFrame();
 	void allocate(const Intrinsics intrinsics, cudaStream_t& stream);
@@ -25,41 +26,59 @@ class ColorFrame {
 	 * @brief Check for frame allocation.
 	 * @return True if frame is allocated
 	 */
-	bool exists() { return is_allocated; }
+	bool exists()
+	{
+		return is_allocated;
+	}
 	/**
 	 * @brief Get frame gpu device pointer.
 	 * @return Frame device pointer
 	 */
-	uint8_t* get() { return dev_color; }
+	uint8_t* get()
+	{
+		return dev_color;
+	}
 	/**
 	 * @brief Get frame buffer gpu device pointer.
 	 * @return Frame buffer device pointer
 	 */
-	uint8_t* getBuffer() { return dev_color_buffer; }
+	uint8_t* getBuffer()
+	{
+		return dev_color_buffer;
+	}
 	/**
 	 * @brief Get frame intrinsics.
 	 * @return Frame instrinsics
 	 */
-	Intrinsics getIntrinsics() { return intrinsics; }
+	Intrinsics getIntrinsics()
+	{
+		return intrinsics;
+	}
 	/**
 	 * @brief Get frame intrinsics from gpu device.
 	 * @return Frame intrinsics device pointer
 	 */
-	Intrinsics* getDevIntrinsics() { return dev_intrinsics; }
+	Intrinsics* getDevIntrinsics()
+	{
+		return dev_intrinsics;
+	}
 	/**
 	 * @brief Get number of pixels.
 	 * @return Number of pixels
 	 */
-	unsigned getPixelCount() { return pixel_count; }
+	unsigned getPixelCount()
+	{
+		return pixel_count;
+	}
 	void copyToDevice(const uint8_t* frame);
 	void copyToHost(uint8_t* host_frame);
 	void setSaveImages(bool save_images, std::string filepath = "", std::string fileprefix = "");
 
- private:
+private:
 	cudaStream_t stream;
 	NppStreamContext npp_context;
 	bool is_allocated = false;
-	bool save_images = false;
+	bool save_images  = false;
 	std::string filepath;
 	std::string fileprefix;
 

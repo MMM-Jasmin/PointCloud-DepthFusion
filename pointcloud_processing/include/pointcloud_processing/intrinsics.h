@@ -3,7 +3,8 @@
 /**
  * @brief Camera distortian enumerator.
  */
-enum Distortion {
+enum Distortion
+{
 	DISTORTION_NONE,
 	DISTORTION_MODIFIED_BROWN_CONRADY,
 	DISTORTION_INVERSE_BROWN_CONRADY,
@@ -16,7 +17,8 @@ enum Distortion {
 /**
  * @brief Camera intrinsics structure.
  */
-struct Intrinsics {
+struct Intrinsics
+{
 	int width;
 	int height;
 	float ppx;
@@ -30,7 +32,8 @@ struct Intrinsics {
 /**
  * @brief Camera depth sensor to color sensor extrinsics.
  */
-struct Extrinsics {
+struct Extrinsics
+{
 	float rotation[9];
 	float translation[3];
 };

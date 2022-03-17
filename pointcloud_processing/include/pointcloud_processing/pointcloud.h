@@ -16,23 +16,33 @@
 /**
  * @brief Pointcloud class.
  */
-class Pointcloud {
- public:
+class Pointcloud
+{
+public:
 	Pointcloud();
 	~Pointcloud();
-	void setStream(cudaStream_t* stream = nullptr) { this->stream = *stream; }
+	void setStream(cudaStream_t* stream = nullptr)
+	{
+		this->stream = *stream;
+	}
 	void allocate(unsigned point_count);
 	void free();
 	/**
 	 * @brief Get pointcloud gpu device pointer.
 	 * @return Pointcloud device pointer
 	 */
-	float* get() { return dev_points; }
+	float* get()
+	{
+		return dev_points;
+	}
 	/**
 	 * @brief Get number of points.
 	 * @return Number of points
 	 */
-	unsigned getPointCount() { return point_count; }
+	unsigned getPointCount()
+	{
+		return point_count;
+	}
 	void set(const float* host_points);
 	void setTransform(const Eigen::Affine3d& transform);
 	void transform();
@@ -42,11 +52,11 @@ class Pointcloud {
 	void project(Frameset& frameset, bool mirror_image = true);
 	void copyToHost(float* host_points);
 
- private:
+private:
 	cudaStream_t stream;
-	unsigned point_count = 0;
-	float* dev_transform = nullptr;
-	float* dev_points = nullptr;
+	unsigned point_count    = 0;
+	float* dev_transform    = nullptr;
+	float* dev_points       = nullptr;
 	unsigned pointer_offset = 0;
-	float* dev_z_buffer = nullptr;
+	float* dev_z_buffer     = nullptr;
 };
