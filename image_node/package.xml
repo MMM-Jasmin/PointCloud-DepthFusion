@@ -20,7 +20,7 @@
   <!--<depend>OpenCV</depend>-->
   <depend>image_transport</depend>
 
-  <!--<depend>camera_interfaces</depend>-->
+  <depend>camera_interfaces</depend>
   <!--<depend>pointcloud_processing</depend>-->
 
   <test_depend>ament_lint_auto</test_depend>
