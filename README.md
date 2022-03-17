@@ -1,5 +1,5 @@
 # DepthFusion - Smart Mirror Point Cloud Fusion Module
-The smart mirror platform was developed in the context of the Low Energy Toolset for Heterogeneous Computing ([LEGaTO](https://github.com/LEGaTO-SmartMirror)) project.  
+
 DepthFusion is a framework that extends the smart mirror by generating a mirror image of the user, based on a point cloud representation generated from color and depth images from two connected RealSense D455 cameras.  
 The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/foxy/index.html)) for distributed data centric communication across the two installed Nvidia Jetson Xavier AGX embedded computing units.
 
@@ -52,6 +52,7 @@ The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/fo
 - [Point Cloud Library](https://github.com/PointCloudLibrary/pcl.git) 1.12.0
 - [Realsense SDK](https://github.com/IntelRealSense/librealsense.git) 2.50.0
 - [FastGICP Library](https://github.com/SMRT-AIST/fast_gicp.git) build from 22/11/22 (automatic download during CMake build)
+- [Nlohmann json](https://github.com/nlohmann/json.git) 
 - [ROS2](https://docs.ros.org/en/foxy/Installation.html) "Foxy Fitzroy"
 	- Required ROS2 packages  
 		`rclcpp`  
@@ -80,10 +81,9 @@ The framework uses the Robot Operating System ([ROS2](https://docs.ros.org/en/fo
 `$ source ./install/local_setup.bash`  
 - Rebuild packages  
 `$ cd /opt/dev/ros2_ws`  
-`$ colcon build --packages-select pointcloud_processing camera_node fusion_node`  
-`registration_node image_node`  
+`$ colcon build --packages-select pointcloud_processing camera_node fusion_node registration_node image_node`  
 - Compile Doxygen documentation  
-`$ colcon build --packages-select pointcloud_processing camera_node fusion_node`   `registration_node image_node --cmake-target-skip-unavailable --cmake-target doc`  
+`$ colcon build --packages-select pointcloud_processing camera_node fusion_node registration_node image_node --cmake-target-skip-unavailable --cmake-target doc`  
 Documentation as HTML and LaTeX can be found under  
 `/opt/dev/ros2_ws/build/<package_name>/doc`  
 - Optinal colcon arguments  
