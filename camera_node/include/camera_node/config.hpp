@@ -26,10 +26,7 @@ public:
 	void registerRealsenseParameterCallback(std::function<void(std::string, float)> realsense_parameter_callback);
 	void declareNodeParameters();
 
-	const bool &debug() const
-	{
-		return m_debug;
-	}
+	const bool &debug() const { return m_debug; }
 	const bool &verbose() const
 	{
 		return m_verbose;
@@ -131,9 +128,9 @@ public:
 	{
 		return m_topic_color;
 	}
-	const std::string &topic_color_416() const
+	const std::string &topic_color_small() const
 	{
-		return m_topic_color_416;
+		return m_topic_color_small;
 	}
 	const std::string &topic_depth() const
 	{
@@ -183,6 +180,26 @@ public:
 		m_depth_scale = depth_scale;
 	}
 
+	void smallImage_height(const int &smallImage_height)
+	{
+		m_smallImage_height = smallImage_height;
+	}
+
+	void smallImage_width(const int &smallImage_width)
+	{
+		m_smallImage_width = smallImage_width;
+	}
+	
+	const int &smallImage_width() const
+	{
+		return m_smallImage_width;
+	}
+	
+	const int &smallImage_height() const
+	{
+		return m_smallImage_height;
+	}
+
 private:
 	rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> &parameters);
 
@@ -212,13 +229,15 @@ private:
 	bool m_enable_rs_debug         = false;
 	bool m_qos_sensor_data         = false;
 	int m_qos_history_depth        = 2;
+	int m_smallImage_width		   = 608;
+	int m_smallImage_height		   = 608;
 
 	std::string m_node_namespace            = "";
 	std::string m_topic_fps                 = "profiling/fps";
 	std::string m_topic_duration            = "profiling/duration";
 	std::string m_topic_latency             = "profiling/latency";
 	std::string m_topic_color               = "color/image";
-	std::string m_topic_color_416           = "color/image_416";
+	std::string m_topic_color_small         = "color/image_small";
 	std::string m_topic_depth               = "depth/image";
 	std::string m_topic_frameset            = "frameset";
 	std::string m_color_image_filename      = "";

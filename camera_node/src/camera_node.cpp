@@ -6,6 +6,7 @@
 // ROS2
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <sensor_msgs/msg/image.hpp>
+//#include <sensor_msgs/msg/CompressedImage.hpp>
 // PROJECT
 #include "camera_node.hpp"
 
@@ -17,8 +18,6 @@ using namespace std::chrono_literals;
 CameraNode::CameraNode(const std::string &name) :
 	Node(name, rclcpp::NodeOptions().use_intra_process_comms(true)),
 	m_package_share_directory(),
-	m_color_publisher(),
-	m_depth_publisher(),
 	m_last_frame_timestamp(),
 	m_color_intrinsics(),
 	m_depth_intrinsics(),
@@ -26,9 +25,6 @@ CameraNode::CameraNode(const std::string &name) :
 	m_color_camerainfo(),
 	m_depth_camerainfo(),
 	m_frameset(),
-	m_cuda_stream(),
-	m_publish_cloud_timer(),
-	m_callback_group_timer(),
 	m_profiling_vec()
 {
 	m_node_name               = name;
@@ -48,7 +44,7 @@ CameraNode::CameraNode(const std::string &name) :
 	this->get_parameter("use_rs_timestamp", m_use_rs_timestamp);
 }
 
-/**
+/**f
  * @brief Destructor.
  */
 CameraNode::~CameraNode()
@@ -75,37 +71,16 @@ void CameraNode::init()
 	m_pRealsense->setExitSignal(m_pExit_request);
 	m_pRealsense->setDebug(m_pConfig->enable_rs_debug());
 	m_pRealsense->setVerbosity(m_pConfig->verbose());
-	m_pRealsense->setSimulation(m_pConfig->simulation());
 	m_pRealsense->setAlign(m_use_rs_align);
 	m_pRealsense->setDepthScale(m_pConfig->depth_scale());
 	m_pRealsense->setDepthMax(m_pConfig->max_depth());
 	m_pRealsense->setUseQueue(m_use_rs_queue);
-	if (!m_pConfig->simulation())
-	{
-		// Initialize Realsense camera
-		m_pRealsense->init(m_pConfig->camera_serial_no());
-		if (m_pExit_request->load()) return;
-		// Declare Realsense parameters
-		m_pRealsense->declareRosParameters(this);
-	}
-	else
-	{
-		if (m_debug) std::cout << "simulate images" << std::endl;
-		// Setup image simulation
-		// Unregister parameter callback
-		m_pConfig->registerRealsenseParameterCallback(nullptr);
-		// Set framerate
-		m_pRealsense->setSimulationFramerate(m_pConfig->simulation_framerate());
-		// Set depth scale factor
-		m_pRealsense->setDepthScale(static_cast<float>(m_pConfig->sim_depth_scale()));
-		m_pConfig->setDepthScale(static_cast<float>(m_pConfig->sim_depth_scale()));
-		// Load images for simulation
-		m_pRealsense->loadImageFiles(m_pConfig->color_image_filename(), m_pConfig->depth_image_filename());
-		// Load intrinsics files for simulation
-		m_pRealsense->loadIntrinsicsFiles(m_pConfig->color_intrinsics_filename(), m_pConfig->depth_intrinsics_filename());
-		if (m_pExit_request->load()) return;
-	}
-
+	// Initialize Realsense camera
+	m_pRealsense->init(m_pConfig->camera_serial_no());
+	if (m_pExit_request->load()) return;
+	// Declare Realsense parameters
+	m_pRealsense->declareRosParameters(this);
+	
 	// Get camera sensor intrinsics
 	rs2_intrinsics rs_color_intrinsics = m_pRealsense->getColorIntrinsics();
 	rs2_intrinsics rs_depth_intrinsics = m_pRealsense->getDepthIntrinsics();
@@ -130,26 +105,37 @@ void CameraNode::init()
 	if (m_pConfig->qos_sensor_data()) m_qos_profile = rclcpp::SensorDataQoS();
 	m_qos_profile = m_qos_profile.keep_last(static_cast<size_t>(m_pConfig->qos_history_depth()));
 
-	std::string topic_color    = std::string(this->get_name()) + "/" + m_pConfig->topic_color();
+	std::string topic_color_small    = std::string(this->get_name()) + "/" + m_pConfig->topic_color_small();
 	std::string topic_depth    = std::string(this->get_name()) + "/" + m_pConfig->topic_depth();
 	std::string topic_frameset = std::string(this->get_name()) + "/" + m_pConfig->topic_frameset();
 
-	m_frameset_publisher = this->create_publisher<camera_interfaces::msg::DepthFrameset>(topic_frameset, m_qos_profile);
-	m_publish_timer      = this->create_wall_timer(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)), std::bind(&CameraNode::publishFrameset, this));
+	m_frameset_publisher    = this->create_publisher<camera_interfaces::msg::DepthFrameset>(topic_frameset, m_qos_profile);
+	m_image_small_publisher = this->create_publisher<sensor_msgs::msg::Image>(topic_color_small, m_qos_profile);
+	m_publish_timer         = this->create_wall_timer(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)), std::bind(&CameraNode::publishEverything, this));
 
 	// Create camera parameter service
 	m_service = this->create_service<camera_interfaces::srv::GetCameraParameters>(m_node_name + "/get_camera_parameters",std::bind(&CameraNode::getCameraParameters, this, std::placeholders::_1, std::placeholders::_2));
 
 	// Depth image publisher
-	m_depth_publisher = image_transport::create_camera_publisher(this, topic_depth, m_qos_profile.get_rmw_qos_profile());
+	//m_depth_publisher = image_transport::create_camera_publisher(this, topic_depth, m_qos_profile.get_rmw_qos_profile());
 
 	// Allocate frames
-	m_pColor_frame = reinterpret_cast<uint8_t *>(malloc(static_cast<unsigned>(m_color_intrinsics.width * m_color_intrinsics.height) * 3 * sizeof(uint8_t)));
-	m_pDepth_frame = reinterpret_cast<uint16_t *>(malloc(static_cast<unsigned>(m_depth_intrinsics.width * m_depth_intrinsics.height) * sizeof(uint16_t)));
+	m_pColor_frame_0 = reinterpret_cast<uint8_t *>(malloc(static_cast<unsigned>(m_color_intrinsics.width * m_color_intrinsics.height) * 3 * sizeof(uint8_t)));
+	m_pColor_frame_1 = reinterpret_cast<uint8_t *>(malloc(static_cast<unsigned>(m_color_intrinsics.width * m_color_intrinsics.height) * 3 * sizeof(uint8_t)));
+	m_pDepth_frame_0 = reinterpret_cast<uint16_t *>(malloc(static_cast<unsigned>(m_depth_intrinsics.width * m_depth_intrinsics.height) * sizeof(uint16_t)));
+	m_pDepth_frame_1 = reinterpret_cast<uint16_t *>(malloc(static_cast<unsigned>(m_depth_intrinsics.width * m_depth_intrinsics.height) * sizeof(uint16_t)));
 
-	// Start m_pRealsense camera
-	if (!m_pConfig->simulation())
-		m_pRealsense->start();
+	m_pRealsense->start();
+
+	m_pRealsense->getFrames(m_pColor_frame_0, m_pDepth_frame_0, m_timestamp, 200);
+	m_pRealsense->getFrames(m_pColor_frame_1, m_pDepth_frame_1, m_timestamp, 200);
+	m_pRealsense->getFrames(m_pColor_frame_0, m_pDepth_frame_0, m_timestamp, 200);
+	m_pRealsense->getFrames(m_pColor_frame_1, m_pDepth_frame_1, m_timestamp, 200);
+	m_pRealsense->getFrames(m_pColor_frame_0, m_pDepth_frame_0, m_timestamp, 200);
+	m_pRealsense->getFrames(m_pColor_frame_1, m_pDepth_frame_1, m_timestamp, 200);
+
+	m_buffer = true;
+
 }
 
 /**
@@ -157,157 +143,13 @@ void CameraNode::init()
  */
 void CameraNode::stop()
 {
-	// Stop m_pRealsense camera
-	if (!m_pConfig->simulation())
-		m_pRealsense->stop();
+
+	m_pRealsense->stop();
 }
 
-/**
- * @brief Convert libm_pRealsense intrinsics to own intrinsics structure.
- * @param rs_intrinsics Libm_pRealsense intrinsics
- * @param intrinsics Own intrinsics structure
- */
-void CameraNode::convertRs2Intrinsics(const rs2_intrinsics &rs_intrinsics, Intrinsics &intrinsics) const
+
+void CameraNode::publishFrameset(uint8_t * color_image, int color_width, int color_height, uint8_t * depth_image, int depth_width, int depth_height, rclcpp::Time ros_timestamp, rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr message_publisher)
 {
-	intrinsics.width  = rs_intrinsics.width;
-	intrinsics.height = rs_intrinsics.height;
-	intrinsics.ppx    = rs_intrinsics.ppx;
-	intrinsics.ppy    = rs_intrinsics.ppy;
-	intrinsics.fx     = rs_intrinsics.fx;
-	intrinsics.fy     = rs_intrinsics.fy;
-	intrinsics.model  = static_cast<Distortion>(static_cast<int>(rs_intrinsics.model));
-	for (uint i = 0; i < 5; i++)
-		intrinsics.coeffs[i] = rs_intrinsics.coeffs[i];
-}
-
-/**
- * @brief Start profiling timer.
- */
-void CameraNode::startTimer()
-{
-	m_timer = hires_clock::now();
-}
-
-/**
- * @brief Stop profiling timer.
- * @param msg Message to display
- */
-void CameraNode::stopTimer(std::string msg)
-{
-	if (m_debug && m_pConfig->profiling())
-	{
-		cudaDeviceSynchronize();
-		double duration    = (hires_clock::now() - m_timer).count() / 1e06;
-		int max_msg_length = 32;
-		msg                = "| " + msg + ":";
-		int num_spaces     = (max_msg_length - static_cast<int>(msg.length()));
-		if (num_spaces < 1) num_spaces = 1;
-		msg.append(std::string(static_cast<uint>(num_spaces), ' '));
-		std::cout << msg << std::setprecision(4) << duration << " ms" << std::endl;
-	}
-}
-
-/**
- * @brief Publish depth image.
- */
-void CameraNode::publishDepth()
-{
-	rclcpp::Time ros_timestamp = this->now();
-
-	// Publish depth image
-	const uint8_t *depth_frame_bytes = reinterpret_cast<const uint8_t *>(m_pDepth_frame);
-	m_depth_msg->header.frame_id     = "camera_left_color_optical_frame";
-	m_depth_msg->header.stamp        = ros_timestamp;
-	m_depth_msg->width               = static_cast<uint>(m_depth_intrinsics.width);
-	m_depth_msg->height              = static_cast<uint>(m_depth_intrinsics.height);
-	m_depth_msg->is_bigendian        = false;
-	m_depth_msg->step                = m_depth_msg->width * sizeof(uint16_t);
-	m_depth_msg->encoding            = "mono16";
-	m_depth_msg->data.assign(depth_frame_bytes, depth_frame_bytes + (m_depth_msg->step * m_depth_msg->height));
-	m_depth_publisher.publish(*m_depth_msg, m_depth_camerainfo);
-}
-
-/**
- * @brief Callback for ROS parameter change.
- * @param parameters Vector of ROS parameters.
- * @return Success on parameter change
- */
-rcl_interfaces::msg::SetParametersResult CameraNode::parametersCallback(const std::vector<rclcpp::Parameter> &parameters)
-{
-	for (const auto &param : parameters)
-	{
-		std::string parameter_string = param.get_name();
-
-		// Tokenize parameter string with '.' as delimeter
-		std::vector<std::string> parameter_string_tokens;
-		size_t pos = 0;
-		while (pos != std::string::npos)
-		{
-			size_t next_pos = parameter_string.find('.', pos);
-			if (next_pos != std::string::npos)
-			{
-				parameter_string_tokens.push_back(parameter_string.substr(pos, next_pos - pos));
-				pos = next_pos + 1;
-			}
-			else
-			{
-				parameter_string_tokens.push_back(parameter_string.substr(pos, std::string::npos));
-				pos = std::string::npos;
-			}
-		}
-	}
-
-	rcl_interfaces::msg::SetParametersResult result;
-	result.successful = true;
-	result.reason     = "success";
-	return result;
-}
-
-/**
- * @brief Publish frameset consisting of depth and color frame.
- */
-void CameraNode::publishFrameset()
-{
-	if (m_pExit_request->load() || !rclcpp::ok())
-	{
-		m_publish_timer.get()->cancel();
-		m_pRealsense->stop();
-		return;
-	}
-	time_point callback_start = hires_clock::now();
-
-	// Image sizes
-	int depth_width  = m_depth_intrinsics.width;
-	int depth_height = m_depth_intrinsics.height;
-	int color_width  = m_color_intrinsics.width;
-	int color_height = m_color_intrinsics.height;
-
-	// Get frames
-	unsigned timeout = 60;
-	double timestamp;
-	time_point getframes_start = hires_clock::now();
-	m_pRealsense->getFrames(m_pColor_frame, m_pDepth_frame, timestamp, timeout);
-	double getframes_duration = (hires_clock::now() - getframes_start).count() / 1e6;
-
-	if (m_pDepth_frame == nullptr || m_pColor_frame == nullptr)
-	{
-		if (m_debug) std::cout << "no frame received in timelimit of " << timeout << " ms" << std::endl;
-		return;
-	}
-
-	// Set timestamp
-	rclcpp::Time ros_timestamp = this->now(); // Node timestamp
-	if (m_use_rs_timestamp)
-		ros_timestamp = rclcpp::Time(int64_t(timestamp * 1e6), RCL_ROS_TIME); // Camera timestamp
-
-	double latency_in = (this->now() - ros_timestamp).to_chrono<std::chrono::nanoseconds>().count() / 1e6;
-
-	// Cast frames
-	uint8_t *depth_frame_bytes = reinterpret_cast<uint8_t *>(m_pDepth_frame);
-	uint8_t *color_frame_bytes = reinterpret_cast<uint8_t *>(m_pColor_frame);
-
-	time_point messages_start = hires_clock::now();
-
 	sensor_msgs::msg::Image depth_msg;
 	depth_msg.header.frame_id = "camera_left_color_optical_frame";
 	depth_msg.header.stamp    = ros_timestamp;
@@ -316,7 +158,7 @@ void CameraNode::publishFrameset()
 	depth_msg.is_bigendian    = false;
 	depth_msg.step            = depth_msg.width * sizeof(uint16_t);
 	depth_msg.encoding        = "mono16";
-	depth_msg.data.assign(depth_frame_bytes, depth_frame_bytes + (depth_msg.step * depth_msg.height));
+	depth_msg.data.assign(depth_image, depth_image + (depth_msg.step * depth_msg.height));
 
 	sensor_msgs::msg::Image color_msg;
 	color_msg.header.frame_id = "camera_left_color_optical_frame";
@@ -326,7 +168,7 @@ void CameraNode::publishFrameset()
 	color_msg.is_bigendian    = false;
 	color_msg.step            = color_msg.width * 3 * sizeof(uint8_t);
 	color_msg.encoding        = "rgb8";
-	color_msg.data.assign(color_frame_bytes, color_frame_bytes + (color_msg.step * color_msg.height));
+	color_msg.data.assign(color_image, color_image + (color_msg.step * color_msg.height));
 
 	camera_interfaces::msg::DepthFrameset::UniquePtr frameset_msg(new camera_interfaces::msg::DepthFrameset());
 	frameset_msg->header.frame_id = "camera_left_color_optical_frame";
@@ -334,15 +176,100 @@ void CameraNode::publishFrameset()
 	frameset_msg->depth_image     = depth_msg;
 	frameset_msg->color_image     = color_msg;
 
-	double message_duration = (hires_clock::now() - messages_start).count() / 1e6;
-
-	time_point publish_start = hires_clock::now();
-
+	
 	// Publish frameset
-	m_frameset_publisher->publish(std::move(frameset_msg));
+	message_publisher->publish(std::move(frameset_msg));
 
-	// Publish depth frame
-	m_depth_publisher.publish(depth_msg, m_depth_camerainfo);
+}
+
+
+void CameraNode::publishImageSmall(uint8_t * color_image, int color_width, int color_height, rclcpp::Time ros_timestamp, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher)
+{
+
+	uint8_t *color_frame_bytes = reinterpret_cast<uint8_t *>(color_image);
+
+	cv::Size full_image_size(static_cast<uint>(color_width),static_cast<uint>(color_height));
+	cv::Size small_image_size(static_cast<uint>(m_pConfig->smallImage_width()),static_cast<uint>(m_pConfig->smallImage_height()));
+	cv::Mat small_color_image(full_image_size, CV_8UC3, (void *)color_frame_bytes, cv::Mat::AUTO_STEP);
+	cv::resize(small_color_image, small_color_image, small_image_size, 0, 0, cv::INTER_AREA);
+
+	sensor_msgs::msg::Image::SharedPtr color_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "rgb8", small_color_image).toImageMsg();
+	color_msg->header.frame_id = "camera_left_color_optical_frame";
+	color_msg->header.stamp    = ros_timestamp;
+
+
+	message_publisher->publish(std::move(*color_msg.get()));
+
+}
+
+/**
+ * @brief Publish Everything. Each publisher in it´s own thread and the main thread gets the new images.
+ */
+void CameraNode::publishEverything()
+{
+	if (m_pExit_request->load() || !rclcpp::ok())
+	{
+		m_publish_timer.get()->cancel();
+		m_pRealsense->stop();
+		return;
+	}
+	// start the time
+	time_point callback_start = hires_clock::now();
+
+	// Pointer and variables
+	rclcpp::Time ros_timestamp;
+	uint8_t *current_color_frame_bytes;
+	uint8_t *current_depth_frame_bytes;
+	uint8_t *next_color_frame_bytes;
+	uint16_t *next_depth_frame_bytes;
+
+	// ----------------------------------------
+	// Set timestamp for the last frame to be published now
+	if (m_use_rs_timestamp)
+		ros_timestamp = rclcpp::Time(int64_t(m_timestamp * 1e6), RCL_ROS_TIME); // Camera timestamp
+	else
+		ros_timestamp = this->now(); // Node timestamp
+
+	// ----------------------------------------
+	// Set all pointer to the correct buffer
+	if(m_buffer){
+		// last frames to be published now
+		current_depth_frame_bytes = reinterpret_cast<uint8_t *>(m_pDepth_frame_0);
+		current_color_frame_bytes = reinterpret_cast<uint8_t *>(m_pColor_frame_0);
+		// images polled in this iteration
+		next_color_frame_bytes = m_pColor_frame_1;
+		next_depth_frame_bytes = m_pDepth_frame_1;
+	} else {
+		// last frames to be published now
+		current_depth_frame_bytes = reinterpret_cast<uint8_t *>(m_pDepth_frame_1);
+		current_color_frame_bytes = reinterpret_cast<uint8_t *>(m_pColor_frame_1);
+		// images polled in this iteration
+		next_color_frame_bytes = m_pColor_frame_0;
+		next_depth_frame_bytes = m_pDepth_frame_0;
+	}
+
+	// Start the time
+	time_point publish_start = hires_clock::now();
+	
+	// ----------------------------------------
+	// Start all publisher threads
+	//publishFrameset(color_frame_bytes, color_width, color_height, depth_frame_bytes, depth_width, depth_height, ros_timestamp, m_frameset_publisher);
+	auto future_publishFrameset = std::async(&CameraNode::publishFrameset, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height, ros_timestamp, m_frameset_publisher);
+
+	//publishImageSmall(color_frame_bytes, color_width, color_height, ros_timestamp, m_image_small_publisher);
+	auto future_publishImageSmall = std::async(&CameraNode::publishImageSmall, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height, ros_timestamp, m_image_small_publisher);
+
+	// ----------------------------------------
+	// Get new images while waiting for the threads
+	time_point getframes_start = hires_clock::now();
+	m_pRealsense->getFrames(next_color_frame_bytes, next_depth_frame_bytes, m_timestamp, 60);
+	double getframes_duration = (hires_clock::now() - getframes_start).count() / 1e6;
+
+	// ----------------------------------------
+	// clean up
+	future_publishImageSmall.wait();
+	future_publishFrameset.wait();
+	m_buffer = !m_buffer;
 
 	double publish_duration = (hires_clock::now() - publish_start).count() / 1e6;
 
@@ -354,7 +281,6 @@ void CameraNode::publishFrameset()
 		m_fps_avg                = (m_fps_avg + (1000 / timer_duration)) / 2;
 		std::cout << "callback: " << callback_duration << " ms" << std::endl;
 		std::cout << "frames:   " << getframes_duration << " ms" << std::endl;
-		std::cout << "message:  " << message_duration << " ms" << std::endl;
 		std::cout << "publish:  " << publish_duration << " ms" << std::endl;
 		std::cout << "duration: " << timer_duration << " ms" << std::endl;
 		std::cout << "fps:      " << 1000 / timer_duration << std::endl;
@@ -372,9 +298,7 @@ void CameraNode::publishFrameset()
 		vec.push_back(timer_duration);
 		vec.push_back(callback_duration);
 		vec.push_back(getframes_duration);
-		vec.push_back(message_duration);
 		vec.push_back(publish_duration);
-		vec.push_back(latency_in);
 		vec.push_back(latency_out);
 		m_profiling_vec.push_back(vec);
 

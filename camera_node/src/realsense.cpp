@@ -558,37 +558,35 @@ void Realsense::captureFrameset()
 }
 
 /**
- * @brief Fetch color and depth frame from frameset queue.
+ * @brief Fetch color and depth frame from realsense camera.
  * @param color_frame 8bit RGB Color frame
  * @param depth_frame 16bit grayscale Depth frame
- * @param timestamp Timestamp of the first captured frame
+ * @param timestamp Timestamp of the first captured frame 
+ * @param timeout Time to wait for frames in milliseconds
  * @return True if frames arrived before timeout, false otherwise
  */
-bool Realsense::getFramesQueued(uint8_t*& color_frame, uint16_t*& depth_frame, double& timestamp)
+bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& timestamp, unsigned timeout)
 {
-	if (!m_frameset_queue.empty())
+	rs2::frameset frameset;
+	// Get camera frames
+	bool frames_available = false;
+	if (m_use_rs_queue)
+		frames_available = m_frame_queue.try_wait_for_frame(&frameset, timeout);
+	else
+		frames_available = m_pipe.try_wait_for_frames(&frameset, timeout);
+
+	if (frames_available)
 	{
-		rs2::frameset frameset = m_frameset_queue.front();
-		timestamp              = frameset.get_timestamp();
-
-		if (m_debug)
-		{
-			double frameset_age = (hires_clock::now().time_since_epoch().count() / 1e6 - frameset.get_timestamp());
-			std::cout << "| rs time domain:                   " << frameset.get_frame_timestamp_domain() << std::endl;
-			std::cout << "| rs frameset age:                  " << frameset_age << std::endl;
-			std::cout << "| rs frameset queue size:           " << m_frameset_queue.size() << std::endl;
-		}
-
-		m_frameset_queue.pop();
-
+		// Align depth frame to color frame
 		if (m_align)
 		{
 			if (m_debug) m_timer = hires_clock::now();
 			frameset = m_filter_align_to_color->process(frameset);
+
 			if (m_debug)
 			{
 				double duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs align duration:                " << duration << " ms" << std::endl;
+				std::cout << "| rs align duration:            " << duration << " ms" << std::endl;
 			}
 		}
 
@@ -597,15 +595,15 @@ bool Realsense::getFramesQueued(uint8_t*& color_frame, uint16_t*& depth_frame, d
 		if (m_filter)
 		{
 			/*
-			The implemented flow of the filters pipeline is in the following order:
-			1. apply decimation filter
-			2. apply threshold filter
-			3. transform the scene into disparity domain
-			4. apply spatial filter
-			5. apply temporal filter
-			6. revert the results back (if step Disparity filter was applied
-			to depth domain (each post processing block is optional and can be applied independantly).
-			*/
+				The implemented flow of the filters pipeline is in the following order:
+				1. apply decimation filter
+				2. apply threshold filter
+				3. transform the scene into disparity domain
+				4. apply spatial filter
+				5. apply temporal filter
+				6. revert the results back (if step Disparity filter was applied
+				to depth domain (each post processing block is optional and can be applied independantly).
+				*/
 			filtered                = frameset.get_depth_frame();
 			time_point filter_timer = hires_clock::now();
 			m_timer                 = hires_clock::now();
@@ -626,14 +624,14 @@ bool Realsense::getFramesQueued(uint8_t*& color_frame, uint16_t*& depth_frame, d
 				std::cout << "| rs depth to disparity duration:   " << filter_duration << " ms" << std::endl;
 			}
 			/*
-			// Spatial filter (has long processing time)
-			m_timer = hires_clock::now();
-			filtered = m_spat_filter.process(filtered);
-			if (m_debug) {
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs spatial filter duration:       " << filter_duration << " ms" << std::endl;
-			}
-			*/
+				// Spatial filter (has long processing time)
+				m_timer = hires_clock::now();
+				filtered = m_spat_filter.process(filtered);
+				if (m_debug) {
+					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
+					std::cout << "| rs spatial filter duration:       " << filter_duration << " ms" << std::endl;
+				}
+				*/
 			// Temporal filter
 			m_timer  = hires_clock::now();
 			filtered = m_temp_filter.process(filtered);
@@ -656,168 +654,43 @@ bool Realsense::getFramesQueued(uint8_t*& color_frame, uint16_t*& depth_frame, d
 		}
 
 		// Get frames from frameset
-		color_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(frameset.get_color_frame().get_data()));
+		std::memcpy(reinterpret_cast<void*>(color_frame), frameset.get_color_frame().get_data(), frameset.get_color_frame().get_data_size() * sizeof(uint8_t));
 		if (m_filter)
-			depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(filtered.get_data()));
+			std::memcpy(reinterpret_cast<void*>(depth_frame), filtered.get_data(), filtered.get_data_size());
 		else
-			depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(frameset.get_depth_frame().get_data()));
+			std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
+
+		//if (m_filter)
+		//	depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(filtered.get_data()));
+		//else
+		//	depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(frameset.get_depth_frame().get_data()));
+
+		// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
+		// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
+		// RS2_TIMESTAMP_DOMAIN_GLOBAL_TIME     Frame timestamp was measured in relation to the camera clock and converted
+		//   to OS system clock by constantly measure the difference
+		// RS2_TIMESTAMP_DOMAIN_COUNT           Number of enumeration values. Not a valid input: intended to be used in
+		//   for-loops.
+
+		// - timestamp mesasured in milliseconds
+		// - color frame is taken before depth frame (approx 7 ms)
+		// - frameset has timestamp of color frame
+
+		if (frameset.get_frame_timestamp_domain() == RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK)
+		{
+			double elapsed_camera_time = (frameset.get_timestamp() * 1e6) - m_camera_time_base;
+			timestamp                  = (m_system_time_base + elapsed_camera_time) / 1e6;
+		}
+		else
+			timestamp = frameset.get_timestamp();
 
 		return true;
 	}
 	else
+	{
+		depth_frame = nullptr;
+		color_frame = nullptr;
 		return false;
-}
-
-/**
- * @brief Fetch color and depth frame from realsense camera.
- * @param color_frame 8bit RGB Color frame
- * @param depth_frame 16bit grayscale Depth frame
- * @param timestamp Timestamp of the first captured frame
- * @param timeout Time to wait for frames in milliseconds
- * @return True if frames arrived before timeout, false otherwise
- */
-bool Realsense::getFrames(uint8_t*& color_frame, uint16_t*& depth_frame, double& timestamp, unsigned timeout)
-{
-	if (!m_simulation)
-	{
-		// Get camera frames
-		bool frames_available = false;
-		if (m_use_rs_queue)
-			frames_available = m_frame_queue.try_wait_for_frame(&m_frameset, timeout);
-		else
-			frames_available = m_pipe.try_wait_for_frames(&m_frameset, timeout);
-
-		if (frames_available)
-		{
-			// Align depth frame to color frame
-			if (m_align)
-			{
-				if (m_debug) m_timer = hires_clock::now();
-				m_frameset = m_filter_align_to_color->process(m_frameset);
-
-				if (m_debug)
-				{
-					double duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs align duration:            " << duration << " ms" << std::endl;
-				}
-			}
-
-			// Filter depth frame
-			rs2::frame filtered;
-			if (m_filter)
-			{
-				/*
-				The implemented flow of the filters pipeline is in the following order:
-				1. apply decimation filter
-				2. apply threshold filter
-				3. transform the scene into disparity domain
-				4. apply spatial filter
-				5. apply temporal filter
-				6. revert the results back (if step Disparity filter was applied
-				to depth domain (each post processing block is optional and can be applied independantly).
-				*/
-				filtered                = m_frameset.get_depth_frame();
-				time_point filter_timer = hires_clock::now();
-				m_timer                 = hires_clock::now();
-				double filter_duration  = 0.0;
-				// Theshold filter
-				filtered = m_thr_filter.process(filtered);
-				if (m_debug)
-				{
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs threshold filter duration:     " << filter_duration << " ms" << std::endl;
-				}
-				// Depth to disparity
-				m_timer  = hires_clock::now();
-				filtered = m_depth_to_disparity.process(filtered);
-				if (m_debug)
-				{
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs depth to disparity duration:   " << filter_duration << " ms" << std::endl;
-				}
-				/*
-				// Spatial filter (has long processing time)
-				m_timer = hires_clock::now();
-				filtered = m_spat_filter.process(filtered);
-				if (m_debug) {
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs spatial filter duration:       " << filter_duration << " ms" << std::endl;
-				}
-				*/
-				// Temporal filter
-				m_timer  = hires_clock::now();
-				filtered = m_temp_filter.process(filtered);
-				if (m_debug)
-				{
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs temporal filter duration:      " << filter_duration << " ms" << std::endl;
-				}
-				// Disparity to depth
-				m_timer  = hires_clock::now();
-				filtered = m_disparity_to_depth.process(filtered);
-				if (m_debug)
-				{
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs disparity to depth duration:   " << filter_duration << " ms" << std::endl;
-					double all_filter_duration = (hires_clock::now() - filter_timer).count() / 1e6;
-					std::cout << "| rs all filter duration:           " << all_filter_duration << " ms" << std::endl
-							  << std::endl;
-				}
-			}
-
-			// Get frames from frameset
-			color_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(m_frameset.get_color_frame().get_data()));
-			if (m_filter)
-				depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(filtered.get_data()));
-			else
-				depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(m_frameset.get_depth_frame().get_data()));
-
-			// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
-			// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
-			// RS2_TIMESTAMP_DOMAIN_GLOBAL_TIME     Frame timestamp was measured in relation to the camera clock and converted
-			//   to OS system clock by constantly measure the difference
-			// RS2_TIMESTAMP_DOMAIN_COUNT           Number of enumeration values. Not a valid input: intended to be used in
-			//   for-loops.
-
-			// - timestamp mesasured in milliseconds
-			// - color frame is taken before depth frame (approx 7 ms)
-			// - frameset has timestamp of color frame
-
-			if (m_frameset.get_frame_timestamp_domain() == RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK)
-			{
-				double elapsed_camera_time = (m_frameset.get_timestamp() * 1e6) - m_camera_time_base;
-				timestamp                  = (m_system_time_base + elapsed_camera_time) / 1e6;
-			}
-			else
-				timestamp = m_frameset.get_timestamp();
-
-			return true;
-		}
-		else
-		{
-			depth_frame = nullptr;
-			color_frame = nullptr;
-			return false;
-		}
-	}
-	else
-	{
-		// Simulation
-		double time_since_last_frame       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() - m_last_frame_timestamp;
-		double m_simulation_frame_duration = 1000. / static_cast<double>(m_simulation_framerate);
-		// Simulate camera framerate
-		if (time_since_last_frame < m_simulation_frame_duration)
-		{
-			double wait_time = m_simulation_frame_duration - time_since_last_frame;
-			std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(wait_time));
-		}
-		// Set simulated timestamp to now
-		timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-		// Set frames to simulated images
-		color_frame            = m_pSim_color_image->data();
-		depth_frame            = m_pSim_depth_image->data();
-		m_last_frame_timestamp = timestamp;
-		return true;
 	}
 }
 

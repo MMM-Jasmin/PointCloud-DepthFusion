@@ -134,7 +134,7 @@ public:
 	void init(std::string camera_serial_no = "");
 	void start();
 	void stop();
-	bool getFrames(uint8_t*& color_frame, uint16_t*& depth_frame, double& timestamp, unsigned timeout);
+	bool getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& timestamp, unsigned timeout);
 	rs2_intrinsics getDepthIntrinsics() const;
 	rs2_intrinsics getColorIntrinsics() const;
 	rs2_extrinsics getDepthToColorExtrinsics() const;
@@ -144,7 +144,6 @@ public:
 	void loadIntrinsicsFiles(std::string color_intrinsics_filename, std::string depth_intrinsics_filename);
 	void getColorCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const;
 	void getDepthCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const;
-	bool getFramesQueued(uint8_t*& color_frame, uint16_t*& depth_frame, double& timestamp);
 
 private:
 	rs2::device getDevice(std::string serial_no = "");

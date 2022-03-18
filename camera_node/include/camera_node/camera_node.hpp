@@ -1,6 +1,8 @@
 #pragma once
 #define CAMERA_NODE_USE_MULTITHREADED_EXECUTOR 0
 
+#include <thread>
+#include <future>
 // ROS2
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -9,6 +11,9 @@
 #include <std_msgs/msg/u_int8.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <cv_bridge/cv_bridge.h>
+// OPENCV
+#include <opencv2/opencv.hpp>
 // LIBREALSENSE
 #include <librealsense2/rs.hpp>
 // PROJECT
@@ -71,15 +76,12 @@ public:
 	void stop();
 
 private:
-	void startTimer();
-	void stopTimer(std::string msg);
-	void convertRs2Intrinsics(const rs2_intrinsics& rs_intrinsics, Intrinsics& intrinsics) const;
-
-	void publishDepth();
-	void publishFrameset();
+	
+	void publishImageSmall(uint8_t * color_image, int color_width, int color_height, rclcpp::Time ros_timestamp, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher);
+	void publishFrameset(uint8_t * color_image, int color_width, int color_height, uint8_t * depth_image, int depth_width, int depth_height, rclcpp::Time ros_timestamp, rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr message_publisher);
+	void publishEverything();
 
 	void getCameraParameters(const std::shared_ptr<camera_interfaces::srv::GetCameraParameters::Request> request, std::shared_ptr<camera_interfaces::srv::GetCameraParameters::Response> response) const;
-	rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter>& parameters);
 
 private:
 	std::atomic<bool>* m_pExit_request = nullptr;
@@ -94,14 +96,12 @@ private:
 	std::string m_node_name   = "camera_node";
 	rclcpp::QoS m_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
 
-	rclcpp::TimerBase::SharedPtr m_publish_timer                                             = nullptr;
-	rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_publisher = nullptr;
+	rclcpp::TimerBase::SharedPtr m_publish_timer                                             	= nullptr;
+	rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_publisher 	= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_small_publisher 				= nullptr;
 
 	Config* m_pConfig       = nullptr;
 	Realsense* m_pRealsense = nullptr;
-	Executor* m_pExecutor   = nullptr;
-	image_transport::CameraPublisher m_color_publisher;
-	image_transport::CameraPublisher m_depth_publisher;
 
 	std::chrono::high_resolution_clock::time_point m_global_timer = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(0));
 	rclcpp::Time m_last_frame_timestamp;
@@ -109,18 +109,20 @@ private:
 	Intrinsics m_depth_intrinsics;
 	Extrinsics m_extrinsics;
 
-	uint8_t* m_pColor_frame  = nullptr;
-	uint16_t* m_pDepth_frame = nullptr;
+	bool m_buffer = true;
+	double m_timestamp = 0.0;
+	uint8_t* m_pColor_frame_0  = nullptr;
+	uint8_t* m_pColor_frame_1  = nullptr;
+	uint16_t* m_pDepth_frame_0 = nullptr;
+	uint16_t* m_pDepth_frame_1 = nullptr;
+
 	sensor_msgs::msg::CameraInfo m_color_camerainfo;
 	sensor_msgs::msg::CameraInfo m_depth_camerainfo;
 	sensor_msgs::msg::Image::SharedPtr m_color_msg = nullptr;
 	sensor_msgs::msg::Image::SharedPtr m_depth_msg = nullptr;
 	Frameset m_frameset;
 	time_point m_timer = hires_clock::now();
-	cudaStream_t m_cuda_stream;
 
-	rclcpp::TimerBase::SharedPtr m_publish_cloud_timer;
-	CallbackGroup::SharedPtr m_callback_group_timer;
 	rclcpp::Service<camera_interfaces::srv::GetCameraParameters>::SharedPtr m_service = nullptr;
 	double m_fps_avg                                                                  = 0.0;
 

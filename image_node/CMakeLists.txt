@@ -81,6 +81,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(camera_interfaces REQUIRED)
 
 # Preprocessor define for ros2 distribution eloquent elusor
 if ($ENV{ROS_DISTRO} STREQUAL "eloquent")
@@ -111,6 +112,8 @@ ament_target_dependencies(
 	"tf2_geometry_msgs"
 	"pcl_conversions"
 	"image_transport"
+
+	"camera_interfaces"
 )
 
 # library
@@ -125,6 +128,8 @@ ament_target_dependencies(
 	"tf2_geometry_msgs"
 	"pcl_conversions"
 	"image_transport"
+
+	"camera_interfaces"
 )
 
 #############
