@@ -19,7 +19,6 @@ using json   = nlohmann::json;
  * @brief Constructor.
  */
 Realsense::Realsense() :
-	m_syncer(),
 	m_depth_stream(),
 	m_color_stream(),
 	m_device(),
@@ -50,7 +49,6 @@ Realsense::Realsense() :
  * @brief Destructor.
  */
 Realsense::~Realsense() {}
-
 /**
  * @brief Get realsense device by number.
  * @param serial_no Realsense serial number
@@ -80,14 +78,19 @@ rs2::device Realsense::getDevice(std::string serial_no)
 		bool serial_no_found = false;
 		for (unsigned i = 0; i < devices.size(); i++)
 		{
-			std::string device_serial_no = devices[i].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
-			if (m_verbose)
-				std::cout << "| \"" << devices[i].get_info(RS2_CAMERA_INFO_NAME) << "\" serial no: " << device_serial_no << std::endl;
+			try{
+				std::string device_serial_no = devices[i].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
+				if (m_verbose)
+					std::cout << "| \"" << devices[i].get_info(RS2_CAMERA_INFO_NAME) << "\" serial no: " << device_serial_no << std::endl;
 
-			if (device_serial_no == serial_no)
-			{
-				selected_device = devices[i];
-				serial_no_found = true;
+				if (device_serial_no == serial_no)
+				{
+					selected_device = devices[i];
+					serial_no_found = true;
+				}
+			}catch(rs2::error e) {
+					std::cout << e.what()  << std::endl;
+
 			}
 		}
 
@@ -176,10 +179,7 @@ void Realsense::configureSensors(const std::vector<rs2::sensor>& sensors)
  */
 void Realsense::init(std::string camera_serial_no)
 {
-	if (m_use_syncer)
-		initSyncer(camera_serial_no);
-	else
-		initPipeline(camera_serial_no);
+	initPipeline(camera_serial_no);
 }
 
 /**
@@ -187,18 +187,7 @@ void Realsense::init(std::string camera_serial_no)
  */
 void Realsense::start()
 {
-	if (m_use_callback)
-	{
-		std::function<void(const rs2::frame&)> callback = std::bind(&Realsense::rsCallback, this, std::placeholders::_1);
-
-		m_pipe_profile = m_pipe.start(m_rs_config, callback);
-		return;
-	}
-
-	if (m_use_syncer)
-		startSyncer();
-	else
-		startPipeline();
+	startPipeline();
 }
 
 /**
@@ -206,10 +195,7 @@ void Realsense::start()
  */
 void Realsense::stop()
 {
-	if (m_use_syncer)
-		stopSyncer();
-	else
-		stopPipeline();
+	stopPipeline();
 }
 
 /**
@@ -311,59 +297,38 @@ void Realsense::startPipeline()
 	}
 
 	// Start realsense pipeline
-	if (m_use_rs_queue)
-	{
-		m_frame_queue  = rs2::frame_queue(10);
-		m_pipe_profile = m_pipe.start(m_rs_config, m_frame_queue);
-	}
-	else
-	{
-		m_pipe_profile = m_pipe.start(m_rs_config);
+	m_pipe_profile = m_pipe.start(m_rs_config);
 
-		if (m_debug)
+	if (m_debug)
+	{
+		// Debug parameters
+		std::vector<rs2::sensor> sensors = m_pipe_profile.get_device().query_sensors();
+		rs2::color_sensor depth_sensor   = sensors[0].as<rs2::color_sensor>();
+		rs2::color_sensor color_sensor   = sensors[1].as<rs2::color_sensor>();
+		std::cout << "## color:" << std::endl;
+		std::cout << "## RS2_OPTION_AUTO_EXPOSURE_PRIORITY = " << color_sensor.get_option(RS2_OPTION_AUTO_EXPOSURE_PRIORITY) << std::endl;
+		std::cout << "## depth:" << std::endl;
+		std::cout << "## RS2_OPTION_DEPTH_UNITS = " << depth_sensor.get_option(RS2_OPTION_DEPTH_UNITS) << std::endl;
+		std::cout << "## RS2_OPTION_FRAMES_QUEUE_SIZE = " << depth_sensor.get_option(RS2_OPTION_FRAMES_QUEUE_SIZE)  << std::endl;
+		std::cout << "## RS2_OPTION_VISUAL_PRESET = " << depth_sensor.get_option(RS2_OPTION_VISUAL_PRESET) << std::endl;
+
+		if (m_pipe_profile.get_device().is<rs400::advanced_mode>())
 		{
-			// Debug parameters
-			std::vector<rs2::sensor> sensors = m_pipe_profile.get_device().query_sensors();
-			rs2::color_sensor depth_sensor   = sensors[0].as<rs2::color_sensor>();
-			rs2::color_sensor color_sensor   = sensors[1].as<rs2::color_sensor>();
-			std::cout << "## color:" << std::endl;
-			std::cout << "## RS2_OPTION_AUTO_EXPOSURE_PRIORITY = "
-					  << color_sensor.get_option(RS2_OPTION_AUTO_EXPOSURE_PRIORITY) << std::endl;
-			std::cout << "## depth:" << std::endl;
-			std::cout << "## RS2_OPTION_DEPTH_UNITS = " << depth_sensor.get_option(RS2_OPTION_DEPTH_UNITS) << std::endl;
-			std::cout << "## RS2_OPTION_FRAMES_QUEUE_SIZE = " << depth_sensor.get_option(RS2_OPTION_FRAMES_QUEUE_SIZE)
-					  << std::endl;
-			std::cout << "## RS2_OPTION_VISUAL_PRESET = " << depth_sensor.get_option(RS2_OPTION_VISUAL_PRESET) << std::endl;
-
-			if (m_pipe_profile.get_device().is<rs400::advanced_mode>())
-			{
-				rs400::advanced_mode advanced_device(m_pipe_profile.get_device());
-				auto depth_table = advanced_device.get_depth_table();
-				std::cout << "## advanced mode depthUnits = " << depth_table.depthUnits << std::endl;
-				std::cout << "## advanced mode depthClampMin = " << depth_table.depthClampMin << std::endl;
-				std::cout << "## advanced mode depthClampMax = " << depth_table.depthClampMax << std::endl;
-			}
+			rs400::advanced_mode advanced_device(m_pipe_profile.get_device());
+			auto depth_table = advanced_device.get_depth_table();
+			std::cout << "## advanced mode depthUnits = " << depth_table.depthUnits << std::endl;
+			std::cout << "## advanced mode depthClampMin = " << depth_table.depthClampMin << std::endl;
+			std::cout << "## advanced mode depthClampMax = " << depth_table.depthClampMax << std::endl;
 		}
 	}
 
 	// Wait for streams to settle
 	if (m_verbose) std::cout << "Waiting for streams " << std::flush;
 
-	if (m_use_rs_queue)
+	while (!m_pipe.try_wait_for_frames(&m_frameset, 40))
 	{
-		while (!m_frame_queue.try_wait_for_frame(&m_frameset, 40))
-		{
-			std::this_thread::sleep_for(40ms);
-			std::cout << "." << std::flush;
-		}
-	}
-	else
-	{
-		while (!m_pipe.try_wait_for_frames(&m_frameset, 40))
-		{
-			std::this_thread::sleep_for(40ms);
-			if (m_verbose) std::cout << "." << std::flush;
-		}
+		std::this_thread::sleep_for(40ms);
+		if (m_verbose) std::cout << "." << std::flush;
 	}
 
 	if (m_verbose) std::cout << " done" << std::endl;
@@ -387,11 +352,6 @@ void Realsense::startPipeline()
 			std::cout << "| Camera base time: " << m_camera_time_base << std::endl;
 		}
 	}
-
-	// Start capture thread
-	if (m_use_custom_queue && !m_simulation)
-		m_capture_thread = std::thread(std::bind(&Realsense::captureLoop, this));
-
 	std::cout << "+==========[ Camera Started ]==========+" << std::endl;
 }
 
@@ -409,155 +369,6 @@ void Realsense::stopPipeline()
 }
 
 /**
- * @brief Initialize realsense camera synchronizer.
- * @param camera_serial_no Choose camera to initialize by serial number if set
- */
-void Realsense::initSyncer(std::string camera_serial_no)
-{
-	rs2_error* e = nullptr;
-	if (m_verbose)
-	{
-		std::string rsVersion(std::to_string(rs2_get_api_version(&e)).insert(3, ".").insert(1, "."));
-		std::cout << "+-- LibRealSense version" << std::endl;
-		std::cout << "| Built with v" << RS2_API_VERSION_STR << std::endl;
-		std::cout << "| Running with v" << rsVersion << std::endl;
-	}
-
-	// Setup realsense device
-	m_device = getDevice(camera_serial_no);
-	if (m_pExit_request->load()) return;
-
-	// Configure sensors
-	m_sensors                      = m_device.query_sensors();
-	rs2::depth_sensor depth_sensor = m_sensors[0].as<rs2::depth_sensor>();
-	rs2::color_sensor color_sensor = m_sensors[1].as<rs2::color_sensor>();
-	configureSensors(m_sensors);
-
-	// Setup streams
-	std::string rs_camera_name = m_device.get_info(RS2_CAMERA_INFO_NAME);
-	if (rs_camera_name == "Intel RealSense L515")
-	{
-		m_depth_stream = getStreamProfile(depth_sensor, 1024, 768, RS2_FORMAT_Z16, 30);
-		m_color_stream = getStreamProfile(color_sensor, 1280, 720, RS2_FORMAT_RGB8, 30);
-	}
-	else if (rs_camera_name == "Intel RealSense D435" || rs_camera_name == "Intel RealSense D415" || rs_camera_name == "Intel RealSense D455")
-	{
-		m_depth_stream = getStreamProfile(depth_sensor, 1280, 720, RS2_FORMAT_Z16, 30);
-		m_color_stream = getStreamProfile(color_sensor, 1280, 720, RS2_FORMAT_RGB8, 30);
-	}
-
-	// Setup filters
-	m_filter_align_to_color = std::make_shared<rs2::align>(RS2_STREAM_COLOR);
-	m_depth_to_disparity    = rs2::disparity_transform(true);
-	m_disparity_to_depth    = rs2::disparity_transform(false);
-	// m_dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
-	m_thr_filter.set_option(RS2_OPTION_MIN_DISTANCE, 0.0);
-	m_thr_filter.set_option(RS2_OPTION_MAX_DISTANCE, 2.0);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.5);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, 20);
-	m_temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.4f);
-}
-
-/**
- * @brief Start realsense camera synchronizer.
- */
-void Realsense::startSyncer()
-{
-	// Open sensor streams
-	rs2::depth_sensor depth_sensor = m_sensors[0].as<rs2::depth_sensor>();
-	rs2::color_sensor color_sensor = m_sensors[1].as<rs2::color_sensor>();
-	depth_sensor.open(m_depth_stream);
-	color_sensor.open(m_color_stream);
-
-	// Create syncer
-	m_syncer = rs2::syncer(2);
-
-	// Start streams
-	depth_sensor.start(m_syncer);
-	color_sensor.start(m_syncer);
-
-	// Wait for streams to settle
-	std::cout << "+-- Initializing camera" << std::endl;
-	std::cout << "| Waiting for streams ";
-	unsigned frameset_size = 0;
-
-	while (frameset_size < 2 && !m_pExit_request->load())
-	{
-		m_frameset    = m_syncer.wait_for_frames();
-		frameset_size = static_cast<unsigned>(m_frameset.size());
-		std::this_thread::sleep_for(30ms);
-		std::cout << "." << std::flush;
-	}
-
-	std::cout << " done" << std::endl;
-
-	// Start capture thread
-	if (m_use_custom_queue && !m_simulation)
-		m_capture_thread = std::thread(std::bind(&Realsense::captureLoop, this));
-
-	std::cout << "+-- RealSense camera started" << std::endl;
-}
-
-/**
- * @brief Stop realsense camera synchronizer.
- */
-void Realsense::stopSyncer()
-{
-	if (m_capture_thread.joinable())
-		m_capture_thread.join();
-
-	rs2::depth_sensor depth_sensor = m_sensors[0].as<rs2::depth_sensor>();
-	rs2::color_sensor color_sensor = m_sensors[1].as<rs2::color_sensor>();
-	depth_sensor.stop();
-	color_sensor.stop();
-	depth_sensor.close();
-	color_sensor.close();
-	std::cout << "+-- RealSense camera stopped" << std::endl;
-	m_exit_clear = true;
-}
-
-/**
- * @brief Frameset capture loop.
- */
-void Realsense::captureLoop()
-{
-	while (!m_pExit_request->load() && rclcpp::ok())
-		captureFrameset();
-}
-
-/**
- * @brief Capture frameset and push to queue.
- */
-void Realsense::captureFrameset()
-{
-	rs2::frameset frameset;
-	bool frame_arrvied = false;
-
-	if (m_use_syncer)
-		frame_arrvied = (m_syncer.try_wait_for_frames(&frameset, 33));
-	else
-		frame_arrvied = (m_pipe.try_wait_for_frames(&frameset, 33));
-
-	if (frame_arrvied)
-	{
-		if (m_frameset_queue.size() > 4)
-		{
-			m_frameset_queue.pop();
-			std::cout << "rs frameset queue full" << std::endl;
-		}
-
-		m_frameset_queue.push(frameset);
-
-		if (m_debug)
-		{
-			double frameset_age = (hires_clock::now().time_since_epoch().count() / 1e6 - frameset.get_timestamp());
-			std::cout << "| rs capture frameset age:          " << frameset_age << std::endl;
-		}
-	}
-}
-
-/**
  * @brief Fetch color and depth frame from realsense camera.
  * @param color_frame 8bit RGB Color frame
  * @param depth_frame 16bit grayscale Depth frame
@@ -570,10 +381,8 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 	rs2::frameset frameset;
 	// Get camera frames
 	bool frames_available = false;
-	if (m_use_rs_queue)
-		frames_available = m_frame_queue.try_wait_for_frame(&frameset, timeout);
-	else
-		frames_available = m_pipe.try_wait_for_frames(&frameset, timeout);
+
+	frames_available = m_pipe.try_wait_for_frames(&frameset, timeout);
 
 	if (frames_available)
 	{
@@ -659,11 +468,6 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 			std::memcpy(reinterpret_cast<void*>(depth_frame), filtered.get_data(), filtered.get_data_size());
 		else
 			std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
-
-		//if (m_filter)
-		//	depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(filtered.get_data()));
-		//else
-		//	depth_frame = reinterpret_cast<uint16_t*>(const_cast<void*>(frameset.get_depth_frame().get_data()));
 
 		// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
 		// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
@@ -919,29 +723,13 @@ char Realsense::getOptionType(rs2::sensor& sensor, rs2_option& option) const
  */
 rs2_intrinsics Realsense::getDepthIntrinsics() const
 {
-	if (!m_simulation)
+	if (m_align)
 	{
-		if (m_align)
-		{
-			if (m_use_syncer)
-				return m_color_stream.as<rs2::video_stream_profile>().get_intrinsics();
-			else
-				return m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
-		}
-		else
-		{
-			if (m_use_syncer)
-				return m_depth_stream.as<rs2::video_stream_profile>().get_intrinsics();
-			else
-				return m_pipe_profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
-		}
+		return m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
 	}
 	else
 	{
-		if (m_align)
-			return m_color_intrinsics;
-		else
-			return m_depth_intrinsics;
+		return m_pipe_profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>().get_intrinsics();
 	}
 }
 
@@ -951,15 +739,7 @@ rs2_intrinsics Realsense::getDepthIntrinsics() const
  */
 rs2_intrinsics Realsense::getColorIntrinsics() const
 {
-	if (!m_simulation)
-	{
-		if (m_use_syncer)
-			return m_color_stream.as<rs2::video_stream_profile>().get_intrinsics();
-		else
-			return m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
-	}
-	else
-		return m_color_intrinsics;
+	return m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
 }
 
 /**
@@ -968,175 +748,7 @@ rs2_intrinsics Realsense::getColorIntrinsics() const
  */
 rs2_extrinsics Realsense::getDepthToColorExtrinsics() const
 {
-	if (!m_simulation)
-	{
-		if (m_use_syncer)
-			return m_depth_stream.get_extrinsics_to(m_color_stream);
-		else
-			return m_pipe_profile.get_stream(RS2_STREAM_DEPTH).get_extrinsics_to(m_pipe_profile.get_stream(RS2_STREAM_COLOR));
-	}
-	else
-	{
-		rs2_extrinsics sim_extrinsics;
-		for (int i = 0; i < 9; i++) sim_extrinsics.rotation[i] = 0.f;
-		sim_extrinsics.rotation[0] = 1.f;
-		sim_extrinsics.rotation[4] = 1.f;
-		sim_extrinsics.rotation[8] = 1.f;
-		for (int i = 0; i < 3; i++) sim_extrinsics.translation[i] = 0.f;
-		return sim_extrinsics;
-	}
-}
-
-/**
- * @brief Load color and depth png image files for m_simulation.
- * @param color_image_filename 8bit rgb png image filename with path
- * @param depth_image_filename 16bit grayscale png image filename with path
- */
-void Realsense::loadImageFiles(std::string color_image_filename, std::string depth_image_filename)
-{
-	if (fs::exists(fs::path(color_image_filename)))
-	{
-		unsigned width, height;
-		m_pSim_color_image = new std::vector<uint8_t>();
-		unsigned error     = lodepng::decode(*m_pSim_color_image, width, height, color_image_filename, LodePNGColorType::LCT_RGB, 8);
-		if (error)
-			std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	}
-	else
-	{
-		std::cout << "Simulation enabled but color png image file not found: " << color_image_filename << std::endl;
-		m_pExit_request->store(true);
-		return;
-	}
-
-	if (fs::exists(fs::path(depth_image_filename)))
-	{
-		unsigned width, height;
-		m_pSim_depth_image                             = new std::vector<uint16_t>();
-		std::vector<uint8_t>* sim_depth_image_byte_ptr = reinterpret_cast<std::vector<uint8_t>*>(m_pSim_depth_image);
-		unsigned error                                 = lodepng::decode(*sim_depth_image_byte_ptr, width, height, depth_image_filename, LodePNGColorType::LCT_GREY, 16);
-		// Convert big endian lodepng image to little endian image
-		for (unsigned i = 0; i < m_pSim_depth_image->size(); i++)
-		{
-			m_pSim_depth_image->at(i) = __builtin_bswap16(m_pSim_depth_image->at(i));
-			// Scale from 1m=1000 in sim image to 1m=4000 for depth scale 0.00025
-			m_pSim_depth_image->at(i) = static_cast<uint16_t>(m_pSim_depth_image->at(i) * 1 / (m_depth_scale * 1000));
-		}
-		if (error)
-			std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-	}
-	else
-	{
-		std::cout << "Simulation enabled but depth png image file not found: " << depth_image_filename << std::endl;
-		m_pExit_request->store(true);
-		return;
-	}
-}
-
-/**
- * @brief Load color and depth json intrinsics files for m_simulation.
- * @param color_intrinsics_filename Color intrinsics json filename
- * @param depth_intrinsics_filename Depth intrinsics json filename
- */
-void Realsense::loadIntrinsicsFiles(std::string color_intrinsics_filename, std::string depth_intrinsics_filename)
-{
-	loadIntrinsics(m_color_intrinsics, color_intrinsics_filename);
-	loadIntrinsics(m_depth_intrinsics, depth_intrinsics_filename);
-}
-
-/**
- * @brief Realsense::loadIntrinsics
- * @param intrinsics Camera intrinsics to set
- * @param intrinsics_filename Intrinsics json filename with path
- */
-void Realsense::loadIntrinsics(rs2_intrinsics& intrinsics, std::string intrinsics_filename)
-{
-	// Load intrinsics json file
-	json intrinsics_json;
-	if (fs::exists(fs::path(intrinsics_filename)))
-	{
-		std::ifstream ifs;
-		ifs.open(intrinsics_filename);
-		ifs >> intrinsics_json;
-		ifs.close();
-	}
-	else
-	{
-		std::cout << "Simulation enabled but camera intrinsics file not found: " << intrinsics_filename << std::endl;
-		m_pExit_request->store(true);
-		return;
-	}
-
-	// Create rs2_intrinsics from json
-	// Width of the image in pixels
-	intrinsics.width = intrinsics_json["width"];
-	// Height of the image in pixels
-	intrinsics.height = intrinsics_json["height"];
-	// Focal length of the image plane, as a multiple of pixel width
-	intrinsics.fx = intrinsics_json["fx"];
-	// Focal length of the image plane, as a multiple of pixel height
-	intrinsics.fy = intrinsics_json["fy"];
-	// Horizontal coordinate of the principal point of the image, as a pixel offset from the left edge
-	intrinsics.ppx = intrinsics_json["ppx"];
-	// Vertical coordinate of the principal point of the image, as a pixel offset from the top edge
-	intrinsics.ppy = intrinsics_json["ppy"];
-	// Distortion model of the image
-	intrinsics.model = intrinsics_json["model"];
-	// Distortion coefficients. Order for Brown-Conrady: [k1, k2, p1, p2, k3]
-	// Order for F-Theta Fish-eye: [k1, k2, k3, k4, 0]
-	// Other models are subject to their own interpretations
-	std::vector<float> coeffs = intrinsics_json["coeffs"].get<std::vector<float>>();
-	for (unsigned i = 0; i < 5; i++)
-		intrinsics.coeffs[i] = coeffs[i];
-
-	// rs2_distortion enumerator: Distortion model defines how pixel coordinates should be mapped to sensor coordinates.
-	// 0 RS2_DISTORTION_NONE Rectilinear images. No distortion compensation required.
-	// 1 RS2_DISTORTION_MODIFIED_BROWN_CONRADY Equivalent to Brown-Conrady distortion, except that tangential distortion
-	//     is applied to radially distorted points
-	// 2 RS2_DISTORTION_INVERSE_BROWN_CONRADY Equivalent to Brown-Conrady distortion, except undistorts image instead
-	//     of distorting it
-	// 3 RS2_DISTORTION_FTHETA F-Theta fish-eye distortion model
-	// 4 RS2_DISTORTION_BROWN_CONRADY	Unmodified Brown-Conrady distortion model
-	// 5 RS2_DISTORTION_KANNALA_BRANDT4 Four parameter Kannala Brandt distortion model
-	// 6 RS2_DISTORTION_COUNT	Number of enumeration values. Not a valid input: intended to be used in for-loops.
-}
-
-/**
- * @brief Save realsense sensor intrinsics to json file.
- * @param intrinsics Realsense sensor intrinsics
- * @param intrinsics_filename Intrinsics json filename with path
- */
-void Realsense::saveIntrinsics(rs2_intrinsics intrinsics, std::string intrinsics_filename) const
-{
-	json intrinsics_json;
-	// Width of the image in pixels
-	intrinsics_json["width"] = intrinsics.width;
-	// Height of the image in pixels
-	intrinsics_json["height"] = intrinsics.height;
-	// Focal length of the image plane, as a multiple of pixel width
-	intrinsics_json["fx"] = intrinsics.fx;
-	// Focal length of the image plane, as a multiple of pixel height
-	intrinsics_json["fy"] = intrinsics.fy;
-	// Horizontal coordinate of the principal point of the image, as a pixel offset from the left edge
-	intrinsics_json["ppx"] = intrinsics.ppx;
-	// Vertical coordinate of the principal point of the image, as a pixel offset from the top edge
-	intrinsics_json["ppy"] = intrinsics.ppy;
-	// Distortion model of the image
-	intrinsics_json["model"] = intrinsics.model;
-	// Distortion coefficients. Order for Brown-Conrady: [k1, k2, p1, p2, k3]
-	// Order for F-Theta Fish-eye: [k1, k2, k3, k4, 0]
-	// Other models are subject to their own interpretations
-	intrinsics_json["coeffs"] = intrinsics.coeffs;
-	std::cout << "coeffs:" << std::endl;
-	for (unsigned i = 0; i < 5; i++)
-		std::cout << intrinsics.coeffs[i];
-
-	std::cout << std::endl;
-
-	std::ofstream ofs;
-	ofs.open(intrinsics_filename);
-	ofs << intrinsics_json.dump(4) << std::endl;
-	ofs.close();
+	return m_pipe_profile.get_stream(RS2_STREAM_DEPTH).get_extrinsics_to(m_pipe_profile.get_stream(RS2_STREAM_COLOR));
 }
 
 /**
@@ -1146,22 +758,12 @@ void Realsense::saveIntrinsics(rs2_intrinsics intrinsics, std::string intrinsics
 void Realsense::getColorCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const
 {
 	rs2_intrinsics intrinsics;
-	if (!m_simulation)
-	{
-		rs2::video_stream_profile stream_profile;
-		if (m_use_syncer)
-			stream_profile = m_color_stream.as<rs2::video_stream_profile>();
-		else
-			stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+	rs2::video_stream_profile stream_profile;
 
-		intrinsics = stream_profile.get_intrinsics();
-		intrinsics2CameraInfo(camera_info, intrinsics);
-	}
-	else
-	{
-		intrinsics = m_color_intrinsics;
-		intrinsics2CameraInfo(camera_info, intrinsics);
-	}
+	stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+
+	intrinsics = stream_profile.get_intrinsics();
+	intrinsics2CameraInfo(camera_info, intrinsics);
 }
 
 /**
@@ -1171,34 +773,16 @@ void Realsense::getColorCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) co
 void Realsense::getDepthCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const
 {
 	rs2_intrinsics intrinsics;
-	if (!m_simulation)
-	{
-		rs2::video_stream_profile stream_profile;
-		if (m_use_syncer)
-			stream_profile = m_depth_stream.as<rs2::video_stream_profile>();
-		else
-			stream_profile = m_pipe_profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 
-		if (m_align)
-		{
-			if (m_use_syncer)
-				stream_profile = m_color_stream.as<rs2::video_stream_profile>();
-			else
-				stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
-		}
+	rs2::video_stream_profile stream_profile;
 
-		intrinsics = stream_profile.get_intrinsics();
-		intrinsics2CameraInfo(camera_info, intrinsics);
+	stream_profile = m_pipe_profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+	
+	if (m_align) {
+		stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 	}
-	else
-	{
-		if (m_align)
-			intrinsics = m_color_intrinsics;
-		else
-			intrinsics = m_depth_intrinsics;
-
-		intrinsics2CameraInfo(camera_info, intrinsics);
-	}
+	intrinsics = stream_profile.get_intrinsics();
+	intrinsics2CameraInfo(camera_info, intrinsics);
 }
 
 /**
@@ -1288,105 +872,4 @@ rs2::stream_profile Realsense::getStreamProfile(rs2::sensor sensor, int width, i
 			stream_profile = profile;
 	}
 	return stream_profile;
-}
-
-/**
- * @brief Callback for RealSense library.
- * @param frame Camera images as frameset
- */
-void Realsense::rsCallback(const rs2::frame& frame)
-{
-	if (rs2::frameset frameset = frame.as<rs2::frameset>())
-	{
-		const rs2::depth_frame& depth_frame = frameset.get_depth_frame();
-		const rs2::video_frame& color_frame = frameset.get_color_frame();
-
-		if (m_align)
-		{
-			if (m_debug) m_timer = hires_clock::now();
-			frameset = m_filter_align_to_color->process(frameset);
-			if (m_debug)
-			{
-				double duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs align duration:            " << duration << " ms" << std::endl;
-			}
-		}
-
-		// Filter depth frame
-		rs2::frame filtered;
-		if (m_filter)
-		{
-			/*
-			The implemented flow of the filters pipeline is in the following order:
-			1. apply decimation filter
-			2. apply threshold filter
-			3. transform the scene into disparity domain
-			4. apply spatial filter
-			5. apply temporal filter
-			6. revert the results back (if step Disparity filter was applied
-			to depth domain (each post processing block is optional and can be applied independantly).
-			*/
-			filtered                = frameset.get_depth_frame();
-			time_point filter_timer = hires_clock::now();
-			m_timer                 = hires_clock::now();
-			double filter_duration  = 0.0;
-			// Theshold filter
-			filtered = m_thr_filter.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs threshold filter duration:     " << filter_duration << " ms" << std::endl;
-			}
-			// Depth to disparity
-			m_timer  = hires_clock::now();
-			filtered = m_depth_to_disparity.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs depth to disparity duration:   " << filter_duration << " ms" << std::endl;
-			}
-			/*
-			// Spatial filter (has long processing time)
-			m_timer = hires_clock::now();
-			filtered = m_spat_filter.process(filtered);
-			if (m_debug) {
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs spatial filter duration:       " << filter_duration << " ms" << std::endl;
-			}
-			*/
-			// Temporal filter
-			m_timer  = hires_clock::now();
-			filtered = m_temp_filter.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs temporal filter duration:      " << filter_duration << " ms" << std::endl;
-			}
-			// Disparity to depth
-			m_timer  = hires_clock::now();
-			filtered = m_disparity_to_depth.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs disparity to depth duration:   " << filter_duration << " ms" << std::endl;
-				double all_filter_duration = (hires_clock::now() - filter_timer).count() / 1e6;
-				std::cout << "| rs all filter duration:           " << all_filter_duration << " ms" << std::endl
-						  << std::endl;
-			}
-		}
-
-		double timestamp;
-		if (frameset.get_frame_timestamp_domain() == RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK)
-		{
-			double elapsed_camera_time = (frameset.get_timestamp() * 1e6) - m_camera_time_base;
-			timestamp                  = (m_system_time_base + elapsed_camera_time) / 1e6;
-		}
-		else
-			timestamp = frameset.get_timestamp();
-
-		if (m_filter)
-			m_framesCallback(reinterpret_cast<const uint8_t*>(color_frame.get_data()), reinterpret_cast<const uint16_t*>(filtered.get_data()), timestamp);
-		else
-			m_framesCallback(reinterpret_cast<const uint8_t*>(color_frame.get_data()), reinterpret_cast<const uint16_t*>(depth_frame.get_data()), timestamp);
-	}
 }

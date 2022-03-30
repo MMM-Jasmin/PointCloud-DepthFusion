@@ -57,14 +57,6 @@ public:
 		return m_exit_clear.load();
 	}
 	/**
-	 * @brief Set simulation mode for using static images instead of camera input.
-	 * @param simulation Flag for simulation mode
-	 */
-	void setSimulation(const bool& simulation)
-	{
-		m_simulation = simulation;
-	}
-	/**
 	 * @brief Set scale factor of camera depth sensor.
 	 * @param depth_scale Depth scale factor
 	 */
@@ -81,14 +73,6 @@ public:
 		m_depth_max = depth_max;
 	}
 	/**
-	 * @brief Set framerate for camera simulation.
-	 * @param simulation_framerate Framerate for simulation in frames per second
-	 */
-	void setSimulationFramerate(const unsigned& simulation_framerate)
-	{
-		m_simulation_framerate = simulation_framerate;
-	}
-	/**
 	 * @brief Set align depth to color frame.
 	 * @param align True if depth frame should be aligned to color frame
 	 */
@@ -96,41 +80,7 @@ public:
 	{
 		m_align = align;
 	}
-	/**
-	 * @brief Get size of frameset queue.
-	 * @return Frameset queue size
-	 */
-	unsigned getQueueSize() const
-	{
-		return static_cast<unsigned>(m_frameset_queue.size());
-	}
-	/**
-	 * @brief Check if frameset is available.
-	 * @return True if frameset queue is not empty
-	 */
-	bool hasFrames() const
-	{
-		return (!m_frameset_queue.empty() || !m_use_custom_queue);
-	}
-	/**
-	 * @brief Set queued capture mode.
-	 * @param use_custom_queue True if framesets are to be queued
-	 */
-	void setUseQueue(const bool& use_custom_queue)
-	{
-		m_use_custom_queue = use_custom_queue;
-	}
-
-	void setUseCallback(const bool& use_callback)
-	{
-		m_use_callback = use_callback;
-	}
-
-	void getQueue(const rs2::frame_queue& frame_queue)
-	{
-		m_frame_queue = m_frame_queue;
-	}
-
+	
 	void init(std::string camera_serial_no = "");
 	void start();
 	void stop();
@@ -140,8 +90,6 @@ public:
 	rs2_extrinsics getDepthToColorExtrinsics() const;
 	void declareRosParameters(rclcpp::Node* node);
 	void setOptionFromParameter(std::string parameter_string, float value);
-	void loadImageFiles(std::string color_image_filename, std::string depth_image_filename);
-	void loadIntrinsicsFiles(std::string color_intrinsics_filename, std::string depth_intrinsics_filename);
 	void getColorCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const;
 	void getDepthCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) const;
 
@@ -153,26 +101,18 @@ private:
 	void setSensorOption(rs2::sensor& sensor, const rs2_option& option, const T& value);
 	void configureSensors(const std::vector<rs2::sensor>& sensors);
 	char getOptionType(rs2::sensor& sensor, rs2_option& option) const;
-	void loadIntrinsics(rs2_intrinsics& intrinsics, std::string intrinsics_filename);
-	void saveIntrinsics(rs2_intrinsics intrinsics, std::string intrinsics_filename) const;
 	void intrinsics2CameraInfo(sensor_msgs::msg::CameraInfo& camera_info, const rs2_intrinsics& intrinsics) const;
-	void captureLoop();
-	void captureFrameset();
 	rs2::stream_profile getStreamProfile(rs2::sensor sensor, int w, int h, rs2_format format, int fps) const;
 	void initPipeline(std::string camera_serial_no = "");
 	void startPipeline();
 	void stopPipeline();
-	void initSyncer(std::string camera_serial_no = "");
-	void startSyncer();
-	void stopSyncer();
-	void rsCallback(const rs2::frame& frame);
+
 
 private:
 	std::atomic<bool>* m_pExit_request = nullptr;
 	std::atomic<bool> m_exit_clear     = { false };
 	bool m_debug                       = false;
 	bool m_verbose                     = false;
-	bool m_simulation                  = false;
 	bool m_align                       = false;
 	bool m_filter                      = false;
 	long m_camera_time_base            = 0;
@@ -180,11 +120,6 @@ private:
 	float m_depth_scale                = 0.0001f;
 	float m_depth_max                  = 2.0f;
 
-	bool m_use_custom_queue = false;
-	bool m_use_rs_queue     = false;
-	bool m_use_syncer       = false;
-	bool m_use_callback     = false;
-	rs2::syncer m_syncer;
 	rs2::stream_profile m_depth_stream;
 	rs2::stream_profile m_color_stream;
 	rs2::device m_device;
@@ -197,12 +132,9 @@ private:
 	std::map<std::string, rs2_option> m_depth_option_names;
 	rs2::frameset m_frameset;
 	std::shared_ptr<rs2::filter> m_filter_align_to_color = nullptr;
-	std::vector<uint8_t>* m_pSim_color_image             = nullptr;
-	std::vector<uint16_t>* m_pSim_depth_image            = nullptr;
 	rs2_intrinsics m_color_intrinsics;
 	rs2_intrinsics m_depth_intrinsics;
 	double m_last_frame_timestamp;
-	unsigned m_simulation_framerate = 30;
 	time_point m_timer              = hires_clock::now();
 	std::queue<rs2::frameset> m_frameset_queue;
 	std::thread m_capture_thread;

@@ -40,14 +40,9 @@ void Config::declareNodeParameters()
 	m_node->declare_parameter("roi", std::vector<long>({ -1, -1, -1, -1 }));
 	m_node->declare_parameter("debug.enable_debug", false);
 	m_node->declare_parameter("debug.enable_rs_debug", false);
-	m_node->declare_parameter("debug.save_data", false);
-	m_node->declare_parameter("simulation.simulate_images", false);
-	m_node->declare_parameter("simulation.color_image_filename", "not_set");
-	m_node->declare_parameter("simulation.depth_image_filename", "not_set");
-	m_node->declare_parameter("simulation.color_intrinsics_filename", "not_set");
-	m_node->declare_parameter("simulation.depth_intrinsics_filename", "not_set");
-	m_node->declare_parameter("simulation.depth_scale", 0.00025);
-	m_node->declare_parameter("simulation.framerate", 30);
+	m_node->declare_parameter("camera_serial_no", "");
+	m_node->declare_parameter("inter_cam_sync_mode", 0);
+
 }
 
 /**
@@ -126,8 +121,6 @@ rcl_interfaces::msg::SetParametersResult Config::parametersCallback(const std::v
 					m_debug = param.as_bool();
 				else if (parameter_name == "enable_rs_debug")
 					m_enable_rs_debug = param.as_bool();
-				else if (parameter_name == "save_data")
-					m_save_data = param.as_bool();
 			}
 			else if (parameter_string_tokens[0] == "profiling")
 			{
@@ -141,23 +134,6 @@ rcl_interfaces::msg::SetParametersResult Config::parametersCallback(const std::v
 					m_publish_duration = param.as_bool();
 				else if (parameter_name == "publish_latency")
 					m_publish_latency = param.as_bool();
-			}
-			else if (parameter_string_tokens[0] == "simulation")
-			{
-				if (parameter_name == "simulate_images")
-					m_simulation = param.as_bool();
-				else if (parameter_name == "color_image_filename")
-					m_color_image_filename = fs::absolute(param.as_string());
-				else if (parameter_name == "depth_image_filename")
-					m_depth_image_filename = fs::absolute(param.as_string());
-				else if (parameter_name == "color_intrinsics_filename")
-					m_color_intrinsics_filename = fs::absolute(param.as_string());
-				else if (parameter_name == "depth_intrinsics_filename")
-					m_depth_intrinsics_filename = fs::absolute(param.as_string());
-				else if (parameter_name == "depth_scale")
-					m_sim_depth_scale = param.as_double();
-				else if (parameter_name == "framerate")
-					m_simulation_framerate = static_cast<unsigned>(param.as_int());
 			}
 		}
 

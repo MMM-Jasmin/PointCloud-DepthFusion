@@ -10,20 +10,22 @@ camera_left:
     # Use sensor data Quality of Service for messages
     qos_sensor_data: true
     # Message queue size
-    qos_history_depth: 4
+    qos_history_depth: 20
     # Minimum and maximum limit for depth values
     min_depth: 0.5
     max_depth: 2.0
     # Depth scale for camera in meters; uint16 value * depth scale = distance
     depth_scale: 0.0001 # D455
-    #depth_scale: 0.00025 # L515 and simulation
+    #depth_scale: 0.00025 # L515
     # Align depth to color image
     use_rs_align: true
     # Camera serial number
-    camera_serial_no: "806312060492"
-    #camera_serial_no: "141322250659"
+    #camera_serial_no: "806312060492"
+    camera_serial_no: "141322250659"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
+    #clockwise rotation of the camera image before publishing. Values are "0","90","180" and "270"
+    camera_rotation: 90
     # Profiling configuration
     profiling:
       # Enable profiling logging
@@ -35,24 +37,11 @@ camera_left:
     # Debug configuration
     debug:
       # Print debug information
-      enable_debug: true
+      enable_debug: false
       # Print camera related debug information
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
-      save_data: false
-    # Camera simulation configuration
-    simulation:
-      # Load simulation images and camera configuration from current working directory
-      simulate_images: false
-      color_image_filename: camera_left_color.png
-      depth_image_filename: camera_left_depthaligned.png
-      color_intrinsics_filename: camera_left_color_intrinsics.json
-      depth_intrinsics_filename: camera_left_depthaligned_intrinsics.json
-      # Depth scale for simulation images
-      depth_scale: 0.00025
-      # Publish framerate
-      framerate: 30
-    # RGB sensor
+    ## RGB sensor
     sensor.color:
       # Auto exposure mode
       enable_auto_exposure: true
@@ -97,13 +86,13 @@ camera_right:
      # Use sensor data Quality of Service for messages
     qos_sensor_data: true
     # Message queue size
-    qos_history_depth: 1
+    qos_history_depth: 10
     # Minimum and maximum limit for depth values
     min_depth: 0.5
     max_depth: 2.0
     # Depth scale for camera in meters; uint16 value * depth scale = distance
     depth_scale: 0.0001 # D455
-    #depth_scale: 0.00025 # L515 and simulation
+    #depth_scale: 0.00025 # L515
     # Align depth to color image
     use_rs_align: true
     # Camera serial number
@@ -125,20 +114,7 @@ camera_right:
       # Print camera related debug information
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
-      save_data: false
-    # Camera simulation configuration
-    simulation:
-      # Load simulation images and camera configuration from current working directory
-      simulate_images: false
-      color_image_filename: camera_right_color.png
-      depth_image_filename: camera_right_depthaligned.png
-      color_intrinsics_filename: camera_right_color_intrinsics.json
-      depth_intrinsics_filename: camera_right_depthaligned_intrinsics.json
-      # Depth scale for simulation images
-      depth_scale: 0.00025
-      # Publish framerate
-      framerate: 30
-    # RGB sensor
+    ## RGB sensor
     sensor.color:
       # Auto exposure mode
       enable_auto_exposure: true

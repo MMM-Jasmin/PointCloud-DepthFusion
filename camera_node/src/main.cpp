@@ -73,22 +73,24 @@ int main(int argc, char** argv)
 	camera_node->setExitSignal(&exit_request);
 	camera_node->init();
 
-	rclcpp::executors::MultiThreadedExecutor executor(rclcpp::executor::ExecutorArgs(), 3, false);
+	//rclcpp::executors::MultiThreadedExecutor executor(rclcpp::executor::ExecutorArgs(), 3, false);
+	rclcpp::executors::SingleThreadedExecutor executor;
 	executor.add_node(camera_node);
+	executor.spin();
 
-	auto spin_funct1 = [&executor]() { executor.spin(); };
+	//auto spin_funct1 = [&executor]() { executor.spin(); };
 
-	std::thread spin_thread1(spin_funct1);
-	size_t thread1_core_id = 0;
-	cpu_set_t cpuset1;
-	CPU_ZERO(&cpuset1);
-	CPU_SET(thread1_core_id, &cpuset1);
-	int rc = pthread_setaffinity_np(spin_thread1.native_handle(), sizeof(cpu_set_t), &cpuset1);
+	//std::thread spin_thread1(spin_funct1);
+	//size_t thread1_core_id = 0;
+	//cpu_set_t cpuset1;
+	//CPU_ZERO(&cpuset1);
+	//CPU_SET(thread1_core_id, &cpuset1);
+	//int rc = pthread_setaffinity_np(spin_thread1.native_handle(), sizeof(cpu_set_t), &cpuset1);
 
-	if (rc != 0)
-		std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
+	//if (rc != 0)
+	//	std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
 
-	spin_thread1.join();
+	//spin_thread1.join();
 
 	executor.cancel();
 	rclcpp::shutdown();
