@@ -69,11 +69,15 @@ set(BUILD_VGICP_CUDA ON BOOL)
 set(BUILD_apps OFF BOOL)
 target_include_directories(${PROJECT_BINARY} PRIVATE ${fast_gicp_SOURCE_DIR})
 add_subdirectory(${fast_gicp_SOURCE_DIR} ${fast_gicp_BINARY_DIR})
-#add_subdirectory(${fast_gicp_SOURCE_DIR} ${fast_gicp_SOURCE_DIR})
-message(STATUS "fast_gicp_SOURCE_DIR:\t" ${fast_gicp_SOURCE_DIR})
-message(STATUS "fast_gicp_BINARY_DIR:\t" ${fast_gicp_BINARY_DIR})
-message(STATUS "fast_gicp_BINARY_LIB:\t" ${fast_gicp_BINARY_LIB})
-message(STATUS "fast_gicp_BINARY_LIBS:\t" ${fast_gicp_BINARY_LIBS})
+set(fast_gicp_INSTALL_SUBDIR "lib")
+set(fast_gicp_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${fast_gicp_INSTALL_SUBDIR})
+message(STATUS "+==========[ Fast GICP ]============")
+message(STATUS "|  fast_gicp_SOURCE_DIR:\t" ${fast_gicp_SOURCE_DIR})
+message(STATUS "|  fast_gicp_BINARY_DIR:\t" ${fast_gicp_BINARY_DIR})
+#message(STATUS "|  fast_gicp_BINARY_LIB:\t" ${fast_gicp_BINARY_LIB})
+#message(STATUS "|  fast_gicp_BINARY_LIBS:\t" ${fast_gicp_BINARY_LIBS})
+message(STATUS "|  fast_gicp_INSTALL_DIR:\t" ${fast_gicp_INSTALL_DIR})
+message(STATUS "+===================================")
 target_link_libraries(${PROJECT_BINARY} fast_gicp)
 
 #### RealSense2 ####
@@ -246,6 +250,14 @@ install(
 install(
 	TARGETS ${PROJECT_BINARY}
 	DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install fast gicp library
+install(
+	FILES
+	${fast_gicp_BINARY_DIR}/libfast_gicp.so
+	${fast_gicp_BINARY_DIR}/libfast_vgicp_cuda.so
+	DESTINATION ${fast_gicp_INSTALL_SUBDIR}
 )
 
 ###################
