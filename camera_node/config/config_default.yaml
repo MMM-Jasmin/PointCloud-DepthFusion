@@ -6,11 +6,11 @@ camera_left:
     # Frameset topic for fusion node
     topic_frameset: camera_left/frameset
     # Verbose flag; Print additional information if true
-    verbose: false
+    verbose: true
     # Use sensor data Quality of Service for messages
-    qos_sensor_data: true
+    qos_sensor_data: false
     # Message queue size
-    qos_history_depth: 20
+    qos_history_depth: 10
     # Minimum and maximum limit for depth values
     min_depth: 0.5
     max_depth: 2.0
@@ -24,20 +24,10 @@ camera_left:
     camera_serial_no: "141322250659"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
-    #clockwise rotation of the camera image before publishing. Values are "0","90","180" and "270"
-    camera_rotation: 90
-    # Profiling configuration
-    profiling:
-      # Enable profiling logging
-      enable_profiling: false
-      # Profiling logfile in current working directory
-      filename: camera_left_profiling.txt
-      # Number of callbacks to log
-      log_size: 400
     # Debug configuration
     debug:
       # Print debug information
-      enable_debug: false
+      enable_debug: true
       # Print camera related debug information
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
@@ -82,7 +72,7 @@ camera_right:
     # Frameset topic for fusion node
     topic_frameset: camera_right/frameset
     # Verbose flag; Print additional information
-    verbose: false
+    verbose: true
      # Use sensor data Quality of Service for messages
     qos_sensor_data: true
     # Message queue size
@@ -99,18 +89,10 @@ camera_right:
     camera_serial_no: "141322251466"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
-    # Profiling configuration
-    profiling:
-      # Enable profiling logging
-      enable_profiling: false
-      # Profiling logfile in current working directory
-      filename: camera_right_profiling.txt
-      # Number of callbacks to log
-      log_size: 400
     # Debug configuration
     debug:
       # Print debug information
-      enable_debug: false
+      enable_debug: true
       # Print camera related debug information
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data

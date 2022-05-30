@@ -240,10 +240,13 @@ void Realsense::initPipeline(std::string camera_serial_no)
 	m_disparity_to_depth    = rs2::disparity_transform(false);
 	m_thr_filter.set_option(RS2_OPTION_MIN_DISTANCE, 0.0);
 	m_thr_filter.set_option(RS2_OPTION_MAX_DISTANCE, 2.0);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.5);
-	m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, 20);
+	m_dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
+	//m_spat_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
+	//m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.5);
+	//m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, 20);
+	m_spat_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.55f);
 	m_temp_filter.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.4f);
+	m_hole_filter.set_option(RS2_OPTION_HOLES_FILL,1);
 
 	// Build pipeline with configuration
 	if (m_rs_config.can_resolve(m_pipe))
@@ -389,86 +392,45 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 		// Align depth frame to color frame
 		if (m_align)
 		{
-			if (m_debug) m_timer = hires_clock::now();
 			frameset = m_filter_align_to_color->process(frameset);
-
-			if (m_debug)
-			{
-				double duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs align duration:            " << duration << " ms" << std::endl;
-			}
 		}
 
 		// Filter depth frame
-		rs2::frame filtered;
 		if (m_filter)
 		{
+			//rs2::depth_frame filtered;
+			auto filtered = frameset.get_depth_frame();
 			/*
 				The implemented flow of the filters pipeline is in the following order:
 				1. apply decimation filter
-				2. apply threshold filter
-				3. transform the scene into disparity domain
-				4. apply spatial filter
-				5. apply temporal filter
-				6. revert the results back (if step Disparity filter was applied
+				2. transform the scene into disparity domain
+				3. apply spatial filter
+				4. apply temporal filter
+				5. revert the results back (if step Disparity filter was applied
+				6. apply threshold filter
 				to depth domain (each post processing block is optional and can be applied independantly).
 				*/
-			filtered                = frameset.get_depth_frame();
-			time_point filter_timer = hires_clock::now();
-			m_timer                 = hires_clock::now();
-			double filter_duration  = 0.0;
-			// Theshold filter
-			filtered = m_thr_filter.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs threshold filter duration:     " << filter_duration << " ms" << std::endl;
-			}
-			// Depth to disparity
-			m_timer  = hires_clock::now();
-			filtered = m_depth_to_disparity.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs depth to disparity duration:   " << filter_duration << " ms" << std::endl;
-			}
-			/*
-				// Spatial filter (has long processing time)
-				m_timer = hires_clock::now();
-				filtered = m_spat_filter.process(filtered);
-				if (m_debug) {
-					filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-					std::cout << "| rs spatial filter duration:       " << filter_duration << " ms" << std::endl;
-				}
-				*/
-			// Temporal filter
-			m_timer  = hires_clock::now();
-			filtered = m_temp_filter.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs temporal filter duration:      " << filter_duration << " ms" << std::endl;
-			}
-			// Disparity to depth
-			m_timer  = hires_clock::now();
-			filtered = m_disparity_to_depth.process(filtered);
-			if (m_debug)
-			{
-				filter_duration = (hires_clock::now() - m_timer).count() / 1e6;
-				std::cout << "| rs disparity to depth duration:   " << filter_duration << " ms" << std::endl;
-				double all_filter_duration = (hires_clock::now() - filter_timer).count() / 1e6;
-				std::cout << "| rs all filter duration:           " << all_filter_duration << " ms" << std::endl
-						  << std::endl;
-			}
+			
+	
+			//filtered = m_dec_filter.process(filtered);
+
+			filtered = m_depth_to_disparity.process(filtered); 	// Depth to disparity
+			//filtered = m_spat_filter.process(filtered);			// Spatial filter (has long processing time on big images..)
+			filtered = m_temp_filter.process(filtered);			// Temporal filter
+			filtered = m_disparity_to_depth.process(filtered); 	// Disparity to depth
+			//filtered = m_hole_filter.process(filtered);
+
+			// copy the full range image to depth_frame image
+			//std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_color_image.data, frameset.get_data_size());
+			std::memcpy(reinterpret_cast<void*>(depth_frame), filtered.get_data(), frameset.get_data_size());
+
+		} else {
+			std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
 		}
 
 		// Get frames from frameset
-		std::memcpy(reinterpret_cast<void*>(color_frame), frameset.get_color_frame().get_data(), frameset.get_color_frame().get_data_size() * sizeof(uint8_t));
-		if (m_filter)
-			std::memcpy(reinterpret_cast<void*>(depth_frame), filtered.get_data(), filtered.get_data_size());
-		else
-			std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
-
+		std::memcpy(reinterpret_cast<void*>(color_frame), frameset.get_color_frame().get_data(), frameset.get_color_frame().get_data_size());
+	
 		// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
 		// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
 		// RS2_TIMESTAMP_DOMAIN_GLOBAL_TIME     Frame timestamp was measured in relation to the camera clock and converted

@@ -15,10 +15,10 @@ fusion_node:
     save_pointclouds: false
     # Depth scale for left camera in meters; uint16 value * depth scale = distance
     depth_scale_left: 0.0001 # D455
-    #depth_scale_left: 0.00025 # L515 and simulation
+    #depth_scale_left: 0.00025 # L515
     # Depth scale for right camera in meters; uint16 value * depth scale = distance
     depth_scale_right: 0.0001 # D455
-    #depth_scale_right: 0.00025 # L515 and simulation
+    #depth_scale_right: 0.00025 # L515
     # Minimum and maximum limit for depth values
     min_depth: 0.5
     max_depth: 2.0
@@ -60,7 +60,7 @@ camera_left:
     max_depth: 2.0
     # Depth scale for camera in meters; uint16 value * depth scale = distance
     depth_scale: 0.0001 # D455
-    #depth_scale: 0.00025 # L515 and simulation
+    #depth_scale: 0.00025 # L515
     # Align depth to color image
     use_rs_align: true
     # Camera serial number
@@ -83,18 +83,6 @@ camera_left:
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
       save_data: false
-    # Camera simulation configuration
-    simulation:
-      # Load simulation images and camera configuration from current working directory
-      simulate_images: false
-      color_image_filename: camera_left_color.png
-      depth_image_filename: camera_left_depthaligned.png
-      color_intrinsics_filename: camera_left_color_intrinsics.json
-      depth_intrinsics_filename: camera_left_depthaligned_intrinsics.json
-      # Depth scale for simulation images
-      depth_scale: 0.00025
-      # Publish framerate
-      framerate: 30
     # RGB sensor
     sensor.color:
       # Auto exposure mode

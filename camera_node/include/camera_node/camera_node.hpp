@@ -11,6 +11,7 @@
 #include <std_msgs/msg/u_int8.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "std_msgs/msg/string.hpp"
 // OPENCV
 #include <opencv2/opencv.hpp>
 // LIBREALSENSE
@@ -21,6 +22,8 @@
 #include "config.hpp"
 #include "pointcloud_processing/frameset.h"
 #include "realsense.hpp"
+
+#include "Timer.h"
 
 /**
  * @brief Camera node for pointcloud publishing.
@@ -83,16 +86,21 @@ private:
 	bool m_debug            = false;
 	bool m_use_rs_align     = true;
 
+	bool m_print_fps = true;
+	uint64_t m_frameCnt = 0;
+	std::string m_FPS_STR = "";
+	Timer m_timer;        // Timer used to measure the time required for one iteration
+	double m_elapsedTime; // Sum of the elapsed time, used to check if one second has passed
+
 	std::string m_node_name   = "camera_node";
 	rclcpp::QoS m_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
 
 	rclcpp::TimerBase::SharedPtr m_publish_timer                                             	= nullptr;
 	rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_publisher 	= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_publisher 					= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_publisher 					= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_small_publisher 				= nullptr;
-	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_depth_image_publisher 				= nullptr;
+	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_depth_image_publisher 				= nullptr;
 	
-
 	Config* m_pConfig       = nullptr;
 	Realsense* m_pRealsense = nullptr;
 
@@ -118,8 +126,10 @@ private:
 	sensor_msgs::msg::Image::SharedPtr m_color_msg = nullptr;
 	sensor_msgs::msg::Image::SharedPtr m_depth_msg = nullptr;
 	Frameset m_frameset;
-	time_point m_timer = hires_clock::now();
+	//time_point m_timer = hires_clock::now();
 
 	rclcpp::Service<camera_interfaces::srv::GetCameraParameters>::SharedPtr m_service = nullptr;
 	double m_fps_avg                                                                  = 0.0;
+	void PrintFPS(const float fps, const float itrTime);
+	void CheckFPS(uint64_t* pFrameCnt);
 };

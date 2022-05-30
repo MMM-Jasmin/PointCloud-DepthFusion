@@ -8,6 +8,8 @@
 // ROS2
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
+// OPENCV
+#include <opencv2/opencv.hpp>
 // LIBREALSENSE
 #include <librealsense2/hpp/rs_types.hpp>
 #include <librealsense2/rs.hpp>
@@ -113,8 +115,8 @@ private:
 	std::atomic<bool> m_exit_clear     = { false };
 	bool m_debug                       = false;
 	bool m_verbose                     = false;
-	bool m_align                       = false;
-	bool m_filter                      = false;
+	bool m_align                       = true;
+	bool m_filter                      = true;
 	long m_camera_time_base            = 0;
 	long m_system_time_base            = 0;
 	float m_depth_scale                = 0.0001f;
@@ -146,6 +148,7 @@ private:
 	rs2::temporal_filter m_temp_filter;            // Temporal   - reduces temporal noise
 	rs2::disparity_transform m_depth_to_disparity; // Transform from depth to disparity
 	rs2::disparity_transform m_disparity_to_depth; // Transform from disparity to depth
+	rs2::hole_filling_filter m_hole_filter;
 
 	std::function<void(const uint8_t*, const uint16_t*, const double)> m_framesCallback;
 };
