@@ -92,7 +92,7 @@ private:
 	Mode m_mode						= PRIMARY;
 	float m_min_depth				= 0.5f;
 	float m_max_depth				= 2.0f;
-	float m_depth_scale				= 0.0001f;
+	float m_depth_scale				= 0.001f;
 	std::string m_camera_serial_no 	= "";
 	std::array<int, 4> m_roi		= { -1, -1, -1, -1 };
 	bool m_enable_rs_debug			= false;

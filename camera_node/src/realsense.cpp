@@ -228,7 +228,7 @@ void Realsense::initPipeline(std::string camera_serial_no)
 		m_rs_config.enable_stream(RS2_STREAM_DEPTH, 1024, 768, RS2_FORMAT_Z16, 30);
 		m_rs_config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
 	}
-	else if (rs_camera_name == "Intel RealSense D435" || rs_camera_name == "Intel RealSense D415" || rs_camera_name == "Intel RealSense D455")
+	else if (rs_camera_name == "Intel RealSense D435I" || rs_camera_name == "Intel RealSense D435" || rs_camera_name == "Intel RealSense D415" || rs_camera_name == "Intel RealSense D455")
 	{
 		m_rs_config.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
 		m_rs_config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
@@ -276,54 +276,31 @@ void Realsense::startPipeline()
 	// Set advanced parameters
 	if (std::string(m_pipe_profile.get_device().get_info(RS2_CAMERA_INFO_PRODUCT_LINE)) == "D400")
 	{
-		if (m_pipe_profile.get_device().is<rs400::advanced_mode>())
-		{
-			rs2::depth_sensor depth_sensor = m_pipe_profile.get_device().query_sensors()[0].as<rs2::depth_sensor>();
-			depth_sensor.set_option(RS2_OPTION_VISUAL_PRESET, 1);
+		//if (m_pipe_profile.get_device().is<rs400::advanced_mode>())
+		//{
+			//rs2::depth_sensor depth_sensor = m_pipe_profile.get_device().query_sensors()[0].as<rs2::depth_sensor>();
+			//depth_sensor.set_option(RS2_OPTION_VISUAL_PRESET, 2);
 
-			rs400::advanced_mode advanced_device(m_pipe_profile.get_device());
+			//rs400::advanced_mode advanced_device(m_pipe_profile.get_device());
 
 			// Set depth units
-			auto depth_table       = advanced_device.get_depth_table();
-			uint32_t depth_units   = static_cast<uint32_t>(m_depth_scale * 1e6f);
-			depth_table.depthUnits = depth_units;
+			//auto depth_table       = advanced_device.get_depth_table();
+			//uint32_t depth_units   = static_cast<uint32_t>(m_depth_scale * 1e6f);
+			//depth_table.depthUnits = depth_units;
 
 			// Set maximal depth
-			depth_table.depthClampMax = static_cast<int32_t>(m_depth_max / m_depth_scale);
-			advanced_device.set_depth_table(depth_table);
-		}
-		else
-		{
-			std::cout << "Advanced mode not supported" << std::endl;
-			m_pExit_request->store(true);
-		}
+			//depth_table.depthClampMax = static_cast<int32_t>(m_depth_max / m_depth_scale);
+			//advanced_device.set_depth_table(depth_table);
+		//}
+		//else
+		//{
+		//	std::cout << "Advanced mode not supported" << std::endl;
+		//	m_pExit_request->store(true);
+		//}
 	}
 
 	// Start realsense pipeline
 	m_pipe_profile = m_pipe.start(m_rs_config);
-
-	if (m_debug)
-	{
-		// Debug parameters
-		std::vector<rs2::sensor> sensors = m_pipe_profile.get_device().query_sensors();
-		rs2::color_sensor depth_sensor   = sensors[0].as<rs2::color_sensor>();
-		rs2::color_sensor color_sensor   = sensors[1].as<rs2::color_sensor>();
-		std::cout << "## color:" << std::endl;
-		std::cout << "## RS2_OPTION_AUTO_EXPOSURE_PRIORITY = " << color_sensor.get_option(RS2_OPTION_AUTO_EXPOSURE_PRIORITY) << std::endl;
-		std::cout << "## depth:" << std::endl;
-		std::cout << "## RS2_OPTION_DEPTH_UNITS = " << depth_sensor.get_option(RS2_OPTION_DEPTH_UNITS) << std::endl;
-		std::cout << "## RS2_OPTION_FRAMES_QUEUE_SIZE = " << depth_sensor.get_option(RS2_OPTION_FRAMES_QUEUE_SIZE)  << std::endl;
-		std::cout << "## RS2_OPTION_VISUAL_PRESET = " << depth_sensor.get_option(RS2_OPTION_VISUAL_PRESET) << std::endl;
-
-		if (m_pipe_profile.get_device().is<rs400::advanced_mode>())
-		{
-			rs400::advanced_mode advanced_device(m_pipe_profile.get_device());
-			auto depth_table = advanced_device.get_depth_table();
-			std::cout << "## advanced mode depthUnits = " << depth_table.depthUnits << std::endl;
-			std::cout << "## advanced mode depthClampMin = " << depth_table.depthClampMin << std::endl;
-			std::cout << "## advanced mode depthClampMax = " << depth_table.depthClampMax << std::endl;
-		}
-	}
 
 	// Wait for streams to settle
 	if (m_verbose) std::cout << "Waiting for streams " << std::flush;
@@ -469,7 +446,7 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 template<class T>
 void Realsense::setSensorOption(rs2::sensor& sensor, const rs2_option& option, const T& value)
 {
-	try
+	/*try
 	{
 		if (sensor.supports(option) && !sensor.is_option_read_only(option))
 			sensor.set_option(option, value);
@@ -484,7 +461,7 @@ void Realsense::setSensorOption(rs2::sensor& sensor, const rs2_option& option, c
 	{
 		std::cout << "RealSense error" << std::endl;
 		m_pExit_request->store(true);
-	}
+	} */
 }
 
 /**
@@ -531,7 +508,7 @@ void Realsense::setOptionFromParameter(std::string parameter_string, float value
 		std::cout << "Wrong parameter namespace for realsense. Should be \"sensor.color\" or \"sensor.depth\" but is \"" << parameter_namespace << "\"" << std::endl;
 		return;
 	}
-
+ 
 	// Set realsense parameter
 	std::vector<rs2::sensor> sensors = m_pipe_profile.get_device().query_sensors();
 	std::string option_name          = parameter_string_tokens.back();
@@ -568,8 +545,8 @@ void Realsense::setOptionFromParameter(std::string parameter_string, float value
 
 			if (!set_option_override)
 			{
-				if (m_verbose) std::cout << "| set " << parameter_string << " to: " << value << std::endl;
-				setSensorOption(color_sensor, option->second, value);
+				//if (m_verbose) std::cout << "| set " << parameter_string << " to: " << value << std::endl;
+				//setSensorOption(color_sensor, option->second, value);
 			}
 		}
 		else
@@ -581,8 +558,8 @@ void Realsense::setOptionFromParameter(std::string parameter_string, float value
 		auto option                    = m_depth_option_names.find(option_name);
 		if (option != m_depth_option_names.end())
 		{
-			if (m_verbose) std::cout << "| set " << parameter_string << " to: " << value << std::endl;
-			setSensorOption(depth_sensor, option->second, value);
+			//if (m_verbose) std::cout << "| set " << parameter_string << " to: " << value << std::endl;
+			//setSensorOption(depth_sensor, option->second, value);
 		}
 		else
 			option_valid = false;
@@ -590,6 +567,7 @@ void Realsense::setOptionFromParameter(std::string parameter_string, float value
 
 	if (!option_valid)
 		std::cout << "Realsense option " << option_name << " not a declared parameter!" << std::endl;
+	
 }
 
 /**

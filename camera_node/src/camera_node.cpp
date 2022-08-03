@@ -19,7 +19,7 @@ const double ONE_SECOND            = 1000.0; // One second in milliseconds
 /**
  * @brief Constructor.
  */
-CameraNode::CameraNode(const std::string &name) : Node(name, rclcpp::NodeOptions().use_intra_process_comms(true)),
+CameraNode::CameraNode(const std::string &name) : Node(name, rclcpp::NodeOptions().use_intra_process_comms(false)),
 	m_package_share_directory(),
 	m_last_frame_timestamp(),
 	m_color_intrinsics(),
@@ -68,7 +68,7 @@ void CameraNode::init()
 	this->get_parameter("print_fps", m_print_fps);
 
 	// Register Realsense parameter callback for setting ros parameters
-	m_pConfig->registerRealsenseParameterCallback(std::bind(&Realsense::setOptionFromParameter, m_pRealsense, std::placeholders::_1, std::placeholders::_2));
+	//m_pConfig->registerRealsenseParameterCallback(std::bind(&Realsense::setOptionFromParameter, m_pRealsense, std::placeholders::_1, std::placeholders::_2));
 	m_pConfig->declareNodeParameters();
 
 	m_verbose = m_pConfig->verbose();
@@ -109,10 +109,22 @@ void CameraNode::init()
 
 	// Quality of service
 	if (m_pConfig->qos_sensor_data()) m_qos_profile = rclcpp::SensorDataQoS();
-	m_qos_profile = m_qos_profile.keep_last(static_cast<size_t>(m_pConfig->qos_history_depth()));
-	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	
+	m_qos_profile = m_qos_profile.keep_last(m_pConfig->qos_history_depth());
+	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(500));
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
-	m_qos_profile = m_qos_profile.deadline(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)));
+	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	
+
+	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(m_pConfig->qos_history_depth());
+	m_qos_profile_sysdef = m_qos_profile_sysdef.lifespan(std::chrono::milliseconds(500));
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//rclcpp::QoS m_qos_profile_BEST = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT );
+	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	//m_qos_profile = m_qos_profile.deadline(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)));
 
 
 
@@ -121,13 +133,13 @@ void CameraNode::init()
 	std::string topic_depth    		= std::string(this->get_name()) + "/" + m_pConfig->topic_depth();
 	std::string topic_depth_thresh  = std::string(this->get_name()) + "/" + m_pConfig->topic_depth() + "_threshold";
 	std::string topic_frameset 		= std::string(this->get_name()) + "/" + m_pConfig->topic_frameset();
+	std::string topic_fps			= std::string(this->get_name()) + "/fps";
 
 	m_frameset_publisher    			= this->create_publisher<camera_interfaces::msg::DepthFrameset>(topic_frameset, m_qos_profile);
 	//m_image_publisher 					= this->create_publisher<sensor_msgs::msg::Image>(topic_color, m_qos_profile);
-	m_image_small_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_color_small, m_qos_profile);
-	//m_depth_image_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_depth, m_qos_profile);
-
-
+	//m_image_small_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_color_small, m_qos_profile);
+	m_depth_image_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_depth, m_qos_profile);
+	m_fps_publisher    					= this->create_publisher<std_msgs::msg::String>(topic_fps, m_qos_profile_sysdef);
 	m_publish_timer        				= this->create_wall_timer(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)), std::bind(&CameraNode::publishEverything, this));
 
 	// Create camera parameter service
@@ -139,8 +151,8 @@ void CameraNode::init()
 	// Allocate frames
 	m_pColor_frame_0 			= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_color_intrinsics.width * m_color_intrinsics.height) * 3 * sizeof(uint8_t)));
 	m_pColor_frame_1 			= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_color_intrinsics.width * m_color_intrinsics.height) * 3 * sizeof(uint8_t)));
-	m_pColor_frame_small_0  	= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_pConfig->smallImage_width() * m_pConfig->smallImage_height()) * 3 * sizeof(uint8_t)));
-	m_pColor_frame_small_1  	= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_pConfig->smallImage_width() * m_pConfig->smallImage_height()) * 3 * sizeof(uint8_t)));
+	//m_pColor_frame_small_0  	= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_pConfig->smallImage_width() * m_pConfig->smallImage_height()) * 3 * sizeof(uint8_t)));
+	//m_pColor_frame_small_1  	= reinterpret_cast<uint8_t 	*>(malloc(static_cast<unsigned>(m_pConfig->smallImage_width() * m_pConfig->smallImage_height()) * 3 * sizeof(uint8_t)));
 	m_pDepth_frame_0 			= reinterpret_cast<uint16_t *>(malloc(static_cast<unsigned>(m_depth_intrinsics.width * m_depth_intrinsics.height) * sizeof(uint16_t)));
 	m_pDepth_frame_1 			= reinterpret_cast<uint16_t *>(malloc(static_cast<unsigned>(m_depth_intrinsics.width * m_depth_intrinsics.height) * sizeof(uint16_t)));
 
@@ -262,11 +274,11 @@ void CameraNode::publishEverything()
 
 	// Pointer and variables
 	uint8_t *current_color_frame_bytes;
-	uint8_t *current_color_frame_small_bytes;
+	//uint8_t *current_color_frame_small_bytes;
 	uint16_t *current_depth_frame_bytes;
 
 	uint8_t *next_color_frame_bytes;
-	uint8_t *next_color_frame_small_bytes;
+	//uint8_t *next_color_frame_small_bytes;
 	uint16_t *next_depth_frame_bytes;
 
 	// ----------------------------------------
@@ -279,20 +291,20 @@ void CameraNode::publishEverything()
 		// last frames to be published now
 		current_depth_frame_bytes			= m_pDepth_frame_0;
 		current_color_frame_bytes 			= m_pColor_frame_0;
-		current_color_frame_small_bytes 	= m_pColor_frame_small_0;
+		//current_color_frame_small_bytes 	= m_pColor_frame_small_0;
 		// images polled in this iteration
 		next_color_frame_bytes 				= m_pColor_frame_1;
 		next_depth_frame_bytes 				= m_pDepth_frame_1;
-		next_color_frame_small_bytes 		= m_pColor_frame_small_1;
+		//next_color_frame_small_bytes 		= m_pColor_frame_small_1;
 	} else {
 		// last frames to be published now
 		current_depth_frame_bytes 			= m_pDepth_frame_1;
 		current_color_frame_bytes 			= m_pColor_frame_1;
-		current_color_frame_small_bytes 	= m_pColor_frame_small_1;
+		//current_color_frame_small_bytes 	= m_pColor_frame_small_1;
 		// images polled in this iteration
 		next_color_frame_bytes 				= m_pColor_frame_0;
 		next_depth_frame_bytes 				= m_pDepth_frame_0;
-		next_color_frame_small_bytes 		= m_pColor_frame_small_0;
+		//next_color_frame_small_bytes 		= m_pColor_frame_small_0;
 	}
 
 	// ----------------------------------------
@@ -303,16 +315,16 @@ void CameraNode::publishEverything()
 	// ----------------------------------------
 	// Start all publisher threads
 	auto future_publishFrameset 	= std::async(&CameraNode::publishFrameset, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height, ros_timestamp);
-	//auto future_publishdepth 		= std::async(&CameraNode::publishDepthImage, this, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height , "camera_depth_optical_frame", ros_timestamp, m_depth_image_publisher);
+	auto future_publishdepth 		= std::async(&CameraNode::publishDepthImage, this, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height , "camera_depth_optical_frame", ros_timestamp, m_depth_image_publisher);
 	//auto future_publishImage 		= std::async(&CameraNode::publishImage, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height , "camera_color_optical_frame", ros_timestamp, m_image_publisher);
 
 	// ----------------------------------------
 	// resize in thread has lead to a memory leak... so do it in the main thread and start thread with that.
-	cv::Mat fullimage(cv::Size(m_color_intrinsics.width, m_color_intrinsics.height), CV_8UC3 ,current_color_frame_bytes);
-	cv::Mat smallimage;
-	cv::resize(fullimage, smallimage, cv::Size(m_pConfig->smallImage_width(), m_pConfig->smallImage_height()), cv::INTER_LINEAR);
-	std::memcpy(reinterpret_cast<void*>(current_color_frame_small_bytes), smallimage.data, smallimage.size().width * smallimage.size().height * smallimage.channels() * sizeof(uint8_t) );
-	auto future_publishImageSmall = std::async(&CameraNode::publishImage, this, current_color_frame_small_bytes, m_pConfig->smallImage_width(), m_pConfig->smallImage_height() , "camera_smaller_color_optical_frame", ros_timestamp, m_image_small_publisher);
+	//cv::Mat fullimage(cv::Size(m_color_intrinsics.width, m_color_intrinsics.height), CV_8UC3 ,current_color_frame_bytes);
+	//cv::Mat smallimage;
+	//cv::resize(fullimage, smallimage, cv::Size(m_pConfig->smallImage_width(), m_pConfig->smallImage_height()), cv::INTER_LINEAR);
+	//std::memcpy(reinterpret_cast<void*>(current_color_frame_small_bytes), smallimage.data, smallimage.size().width * smallimage.size().height * smallimage.channels() * sizeof(uint8_t) );
+	//auto future_publishImageSmall = std::async(&CameraNode::publishImage, this, current_color_frame_small_bytes, m_pConfig->smallImage_width(), m_pConfig->smallImage_height() , "camera_smaller_color_optical_frame", ros_timestamp, m_image_small_publisher);
 
 	// ----------------------------------------
 	// clean up
@@ -378,7 +390,7 @@ void CameraNode::PrintFPS(const float fps, const float itrTime)
 
 	auto message = std_msgs::msg::String();
 	message.data = str.str();
-	//m_fps_publisher->publish(message);
+	m_fps_publisher->publish(message);
 
 		
 	if (m_print_fps)

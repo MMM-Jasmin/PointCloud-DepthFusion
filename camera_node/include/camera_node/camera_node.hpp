@@ -94,12 +94,15 @@ private:
 
 	std::string m_node_name   = "camera_node";
 	rclcpp::QoS m_qos_profile = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
+	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
 
 	rclcpp::TimerBase::SharedPtr m_publish_timer                                             	= nullptr;
 	rclcpp::Publisher<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_publisher 	= nullptr;
 	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_publisher 					= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_small_publisher 				= nullptr;
-	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_depth_image_publisher 				= nullptr;
+	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_depth_image_publisher 				= nullptr;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_fps_publisher 	=	 nullptr;
+
 	
 	Config* m_pConfig       = nullptr;
 	Realsense* m_pRealsense = nullptr;

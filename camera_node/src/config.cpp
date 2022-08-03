@@ -34,9 +34,9 @@ void Config::declareNodeParameters()
 	m_node->declare_parameter("verbose", false);
 	m_node->declare_parameter("qos_sensor_data", false);
 	m_node->declare_parameter("qos_history_depth", 2);
-	m_node->declare_parameter("min_depth", 0.5);
-	m_node->declare_parameter("max_depth", 2.0);
-	m_node->declare_parameter("depth_scale", 0.0001);
+	m_node->declare_parameter("min_depth", 0.0);
+	m_node->declare_parameter("max_depth", 50.0);
+	m_node->declare_parameter("depth_scale", 0.001);
 	m_node->declare_parameter("roi", std::vector<long>({ -1, -1, -1, -1 }));
 	m_node->declare_parameter("debug.enable_debug", false);
 	m_node->declare_parameter("debug.enable_rs_debug", false);
@@ -157,8 +157,8 @@ rcl_interfaces::msg::SetParametersResult Config::parametersCallback(const std::v
 					break;
 			}
 
-			if (m_realsenseParameterCallback != nullptr)
-				m_realsenseParameterCallback(parameter_string, param_float_value);
+			//if (m_realsenseParameterCallback != nullptr)
+				//m_realsenseParameterCallback(parameter_string, param_float_value);
 		}
 	}
 
@@ -174,5 +174,5 @@ rcl_interfaces::msg::SetParametersResult Config::parametersCallback(const std::v
  */
 void Config::registerRealsenseParameterCallback(std::function<void(std::string, float)> realsense_parameter_callback)
 {
-	m_realsenseParameterCallback = realsense_parameter_callback;
+	//m_realsenseParameterCallback = realsense_parameter_callback;
 }
