@@ -2,7 +2,7 @@
 fusion_node:
   ros__parameters:
     # Verbose flag; Print additional information if true
-    verbose: false
+    verbose: true
     # Print debug information
     debug: false
     # Use sensor data Quality of Service for messages
@@ -14,14 +14,14 @@ fusion_node:
     # Also save point clouds for debug to data directory
     save_pointclouds: false
     # Depth scale for left camera in meters; uint16 value * depth scale = distance
-    depth_scale_left: 0.0001 # D455
+    depth_scale_left: 0.001 # D455
     #depth_scale_left: 0.00025 # L515
     # Depth scale for right camera in meters; uint16 value * depth scale = distance
-    depth_scale_right: 0.0001 # D455
+    depth_scale_right: 0.001 # D455
     #depth_scale_right: 0.00025 # L515
     # Minimum and maximum limit for depth values
     min_depth: 0.5
-    max_depth: 2.0
+    max_depth: 3.0
     # If true output vertical image otherwise horizontal
     vertical_image: true
     # Mirror image horizontally if true

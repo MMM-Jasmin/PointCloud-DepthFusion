@@ -2,6 +2,7 @@
 
 // SYSTEM
 #include <fstream>
+#include <chrono>
 // ROS2
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <message_filters/subscriber.h>
@@ -20,6 +21,7 @@
 #include "pointcloud_processing/intrinsics.h"
 #include "pointcloud_processing/pointcloud.h"
 #include "registration.h"
+#include "camera_interfaces/srv/get_camera_parameters.hpp"
 
 /**
  * @brief Ros2 pointcloud registration node class.
@@ -35,6 +37,12 @@ class RegistrationNode : public rclcpp::Node
 	typedef std::chrono::high_resolution_clock::time_point time_point;
 	typedef std::chrono::high_resolution_clock hires_clock;
 
+#if defined(ROS_ELOQUENT)
+	typedef rclcpp::executor::FutureReturnCode FutureReturnCode;
+#else
+	typedef rclcpp::FutureReturnCode FutureReturnCode;
+#endif
+
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	RegistrationNode();
@@ -49,8 +57,6 @@ public:
 private:
 	std::string topic_depth_left       = "/camera_left/depth/image";
 	std::string topic_depth_right      = "/camera_right/depth/image";
-	std::string topic_camerainfo_left  = "/camera_left/depth/camera_info";
-	std::string topic_camerainfo_right = "/camera_right/depth/camera_info";
 
 	std::atomic<bool>* exit_request;
 	std::string node_name = "registration_node";
@@ -96,13 +102,10 @@ private:
 	rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameters_callback_handle = nullptr;
 	message_filters::Subscriber<sensor_msgs::msg::Image> subscriber_depth_left;
 	message_filters::Subscriber<sensor_msgs::msg::Image> subscriber_depth_right;
-	message_filters::Subscriber<sensor_msgs::msg::CameraInfo> subscriber_camerainfo_left;
-	message_filters::Subscriber<sensor_msgs::msg::CameraInfo> subscriber_camerainfo_right;
 	rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr publisher_transform = nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_target_cloud     = nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_aligned_cloud    = nullptr;
 	ImageSync* depth_sync;
-	CameraInfoSync* camera_info_sync;
 	int64_t last_callback_timestamp = hires_clock::now().time_since_epoch().count();
 	std::string transform_filename;
 	std::fstream transform_file;
@@ -124,14 +127,16 @@ private:
 	int profiling_size             = 40;
 	std::string profiling_filename = "";
 
+	// Camera parameter service
+	rclcpp::Client<camera_interfaces::srv::GetCameraParameters>::SharedPtr m_cam_left_param_client;
+	rclcpp::Client<camera_interfaces::srv::GetCameraParameters>::SharedPtr m_cam_right_param_client;
+
 	void icp(const sensor_msgs::msg::Image::ConstSharedPtr& target_depth_msg,
 			 const sensor_msgs::msg::Image::ConstSharedPtr& source_depth_msg,
 			 sensor_msgs::msg::CameraInfo& target_camerainfo, sensor_msgs::msg::CameraInfo& source_camerainfo,
 			 float depth_scale, Eigen::Affine3d& final_transform, const Eigen::Affine3d& initial_transform);
 	void depthSyncCallback(const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg_left,
 						   const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg_right);
-	void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_left,
-							const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_right);
 	void deprojectDepthCpu(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 						   const sensor_msgs::msg::Image::ConstSharedPtr& depth_msg,
 						   sensor_msgs::msg::CameraInfo& camerainfo, float depth_scale);

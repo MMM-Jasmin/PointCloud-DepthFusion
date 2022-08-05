@@ -78,12 +78,12 @@ camera_right:
      # Use sensor data Quality of Service for messages
     qos_sensor_data: true
     # Message queue size
-    qos_history_depth: 5
+    qos_history_depth: 2
     # Minimum and maximum limit for depth values
-    min_depth: 0.5
-    max_depth: 2.0
+    #min_depth: 0.5
+    #max_depth: 2.0
     # Depth scale for camera in meters; uint16 value * depth scale = distance
-    depth_scale: 0.0001 # D455
+    #depth_scale: 0.0001 # D455
     #depth_scale: 0.00025 # L515
     # Align depth to color image
     use_rs_align: true
@@ -100,35 +100,35 @@ camera_right:
       enable_rs_debug: false
       # Save images; output folder ros2_ws/install/camera_node/share/camera_node/data
     ## RGB sensor
-    sensor.color:
+    #sensor.color:
       # Auto exposure mode
-      enable_auto_exposure: true
+      #enable_auto_exposure: true
       # Disable auto exposure priority for stable framerate
-      auto_exposure_priority: false
+      #auto_exposure_priority: false
       # Sync camera clock with system clock if enabled; Starts at zero otherwise
-      global_time_enabled: true
+      #global_time_enabled: true
       # Frame buffer queue size; Equal to number of streams for low latency
-      frames_queue_size: 2
+      #frames_queue_size: 2
     # Depth sensor
-    sensor.depth:
+    #sensor.depth:
       # Visual preset for camera; 0 custom, 1 default, 2 hand recognition, 3 high accuracy, 4 high density, 5 medium density
       #visual_preset: 1
       # Sync camera clock with system clock if enabled; Starts at zero otherwise
-      global_time_enabled: true
+      #global_time_enabled: true
       # Frame buffer queue size; Equal to number of streams for low latency
-      frames_queue_size: 2
+      #frames_queue_size: 2
       # Hardware sync mode; 0 default, 1 master, 2 slave, 3 full slave, 4-260 genlock mode for frame bursts
-      inter_cam_sync_mode: 2
+      #inter_cam_sync_mode: 2
       # Depth unit for one 16bit value; Should be the same as depth scale
-      depth_units: 0.0001
+      #depth_units: 0.0001
       # Automatic exposure mode
-      enable_auto_exposure: true
+      #enable_auto_exposure: true
       # Limit automatic exporure time
-      auto_exposure_limit_toggle: true
+      #auto_exposure_limit_toggle: true
       # Value for automatic exporure limit
-      auto_exposure_limit: 20000
+      #auto_exposure_limit: 20000
       # Limit automatic digital gain
-      auto_gain_limit_toggle: true
+      #auto_gain_limit_toggle: true
       # Value for automatic digital gain value
       auto_gain_limit: 16
 

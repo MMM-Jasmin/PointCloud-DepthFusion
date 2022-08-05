@@ -7,6 +7,8 @@
 // PROJECT
 #include "registration_node.hpp"
 
+using namespace std::chrono_literals;
+
 /**
  * @brief Contructor.
  */
@@ -107,6 +109,7 @@ RegistrationNode::~RegistrationNode()
  */
 void RegistrationNode::init()
 {
+	// Set directories
 	package_share_directory = ament_index_cpp::get_package_share_directory("registration_node");
 	transform_filename      = package_share_directory + "/config/transform.txt";
 
@@ -120,14 +123,9 @@ void RegistrationNode::init()
 	// Subscriptions
 	subscriber_depth_left.subscribe(this, topic_depth_left, image_rmw_qos_profile);
 	subscriber_depth_right.subscribe(this, topic_depth_right, image_rmw_qos_profile);
-	subscriber_camerainfo_left.subscribe(this, topic_camerainfo_left, image_rmw_qos_profile);
-	subscriber_camerainfo_right.subscribe(this, topic_camerainfo_right, image_rmw_qos_profile);
 
 	// Synchronization
 	depth_sync = new ImageSync(ImageSyncPolicy(10), subscriber_depth_left, subscriber_depth_right);
-	camera_info_sync =
-		new CameraInfoSync(CameraInfoSyncPolicy(10), subscriber_camerainfo_left, subscriber_camerainfo_right);
-	camera_info_sync->registerCallback(&RegistrationNode::cameraInfoCallback, this);
 
 	// Transform publisher
 	std::string topic_transform = "/registration/transform";
@@ -180,7 +178,85 @@ void RegistrationNode::init()
 	cudaStreamCreateWithFlags(&target_cuda_stream, cudaStreamNonBlocking);
 	cudaStreamCreateWithFlags(&source_cuda_stream, cudaStreamNonBlocking);
 
-	std::cout << "Waiting for camera info messages" << std::endl;
+	// Camera parameters service
+	m_cam_left_param_client  = this->create_client<camera_interfaces::srv::GetCameraParameters>("/camera_left/get_camera_parameters");
+	m_cam_right_param_client = this->create_client<camera_interfaces::srv::GetCameraParameters>("/camera_right/get_camera_parameters");
+
+	// Wait for left camera parameter service
+	std::cout << "Fetching camera info services" << std::endl;
+	while (!m_cam_left_param_client->wait_for_service(1s))
+	{
+		if (!rclcpp::ok())
+		{
+			std::cout << "Interrupted while waiting for the left camera. Exiting." << std::endl;
+			exit_request->store(true);
+			return;
+		}
+		std::cout << "Waiting for left camera..." << std::endl;
+	}
+	// Fetch camera parameters from service
+	auto request = std::make_shared<camera_interfaces::srv::GetCameraParameters::Request>();
+	auto result  = m_cam_left_param_client->async_send_request(request);
+	if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), result) == FutureReturnCode::SUCCESS)
+	{
+		// m_camerainfo_depth_left = result.get()->depth_intrinsics;
+		// m_camerainfo_color_left = result.get()->color_intrinsics;
+		// for (unsigned long i = 0; i < 3; i++) m_extrinsics_left.translation[i] = result.get()->extrinsic_translation[i];
+		// for (unsigned long i = 0; i < 9; i++) m_extrinsics_left.rotation[i] = result.get()->extrinsic_rotation[i];
+		this->camera_info_left  = result.get()->depth_intrinsics;
+	}
+	else
+	{
+		std::cout << "Failed to call service" << std::endl;
+		exit_request->store(true);
+		return;
+	}
+
+	// Wait for right camera parameter service
+	while (!m_cam_right_param_client->wait_for_service(1s))
+	{
+		if (!rclcpp::ok())
+		{
+			std::cout << "Interrupted while waiting for the right camera. Exiting." << std::endl;
+			exit_request->store(true);
+			return;
+		}
+		std::cout << "Waiting for right camera..." << std::endl;
+	}
+	// Fetch camera parameters from service
+	result = m_cam_right_param_client->async_send_request(request);
+	if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), result) == FutureReturnCode::SUCCESS)
+	{
+		// m_camerainfo_depth_right = result.get()->depth_intrinsics;
+		// m_camerainfo_color_right = result.get()->color_intrinsics;
+		// for (unsigned long i = 0; i < 3; i++) m_extrinsics_right.translation[i] = result.get()->extrinsic_translation[i];
+		// for (unsigned long i = 0; i < 9; i++) m_extrinsics_right.rotation[i] = result.get()->extrinsic_rotation[i];
+		this->camera_info_right = result.get()->depth_intrinsics;
+	}
+	else
+	{
+		std::cout << "Failed to call service" << std::endl;
+		exit_request->store(true);
+		return;
+	}
+	std::cout << "Camera info services received" << std::endl;
+
+	// Get camera intrinsics
+	Intrinsics target_intrinsics;
+	Intrinsics source_intrinsics;
+	cameraInfo2Intrinsics(camera_info_left, target_intrinsics);
+	cameraInfo2Intrinsics(camera_info_right, source_intrinsics);
+
+	// Allocate frames
+	target_frameset.setStream(&target_cuda_stream);
+	source_frameset.setStream(&source_cuda_stream);
+	target_frameset.allocateDepthFrame(target_intrinsics);
+	source_frameset.allocateDepthFrame(source_intrinsics);
+
+	// Register depth image callback
+	depth_sync->registerCallback(&RegistrationNode::depthSyncCallback, this);
+
+	std::cout << "Registration node initialized" << std::endl;
 }
 
 /**
@@ -199,6 +275,7 @@ void RegistrationNode::icp(const sensor_msgs::msg::Image::ConstSharedPtr& target
 						   sensor_msgs::msg::CameraInfo& source_camerainfo, float depth_scale,
 						   Eigen::Affine3d& final_transform, const Eigen::Affine3d& initial_transform)
 {
+	std::cout << "start icp" << std::endl;
 	uint target_count = static_cast<uint>(target_camerainfo.width * target_camerainfo.height);
 	uint source_count = static_cast<uint>(source_camerainfo.width * source_camerainfo.height);
 
@@ -465,39 +542,6 @@ void RegistrationNode::depthSyncCallback(const sensor_msgs::msg::Image::ConstSha
 	{
 		std::cout << "Publish transfrom error: " << ex.what() << std::endl;
 	}
-}
-
-/**
- * @brief Callback for one time synchronization of camera intrinsics messages.
- * @param camera_info_left Left camera intrinsics message
- * @param camera_info_right Right camera intrinsics message
- */
-void RegistrationNode::cameraInfoCallback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_left,
-										  const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info_right)
-{
-	if (verbose)
-	{
-		std::cout << "Camera info messages received" << std::endl;
-	}
-	this->camera_info_left  = *camera_info_left;
-	this->camera_info_right = *camera_info_right;
-	subscriber_camerainfo_left.unsubscribe();
-	subscriber_camerainfo_right.unsubscribe();
-
-	// Get camera intrinsics
-	Intrinsics target_intrinsics;
-	Intrinsics source_intrinsics;
-	cameraInfo2Intrinsics(*camera_info_left, target_intrinsics);
-	cameraInfo2Intrinsics(*camera_info_right, source_intrinsics);
-
-	// Allocate frames
-	target_frameset.setStream(&target_cuda_stream);
-	source_frameset.setStream(&source_cuda_stream);
-	target_frameset.allocateDepthFrame(target_intrinsics);
-	source_frameset.allocateDepthFrame(source_intrinsics);
-
-	// Register depth image callback
-	depth_sync->registerCallback(&RegistrationNode::depthSyncCallback, this);
 }
 
 /**

@@ -29,14 +29,15 @@ registration_node:
     fitness_epsilon: 1e-12
     # Minimum and maximum limit for depth values
     min_depth: 0.5
-    max_depth: 2.0
+    max_depth: 3.0
     # Depth scale for depth images in meters; uint16 value * depth scale = distance
-    depth_scale: 0.0001
+    #depth_scale: 0.0001
+    depth_scale: 0.001
     # Depth scale for depth images from left camera in meters if using different cameras
-    depth_scale_left: 0.0001 # D455
+    depth_scale_left: 0.001 # D455
     #depth_scale_left: 0.00025 # L515
     # Depth scale for depth images from right camera in meters if using different cameras
-    depth_scale_right: 0.0001 # D455
+    depth_scale_right: 0.001 # D455
     #depth_scale_right: 0.00025 # L515
     # Region of interest for left depth image
     #roi_left: [320, 0, 960, 720]
