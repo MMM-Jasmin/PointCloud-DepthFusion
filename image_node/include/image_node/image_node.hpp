@@ -2,13 +2,15 @@
 // SYSTEM
 #include <chrono>
 #include <iostream>
+#include <string>
 // ROS
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 // OPENCV
+#include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
-
+#include <opencv2/highgui.hpp>
 // PROJECT
 #include "camera_interfaces/msg/depth_frameset.hpp"
 
@@ -58,4 +60,5 @@ private:
 	void imageSmallCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
 	void framesetCallback(camera_interfaces::msg::DepthFrameset::UniquePtr fset_msg);
 	void fusedCallback(sensor_msgs::msg::Image::UniquePtr img_msg);
+	static void button1Callback(int state, void* userData);
 };

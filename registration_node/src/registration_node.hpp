@@ -95,7 +95,7 @@ private:
 	bool load_transform            = false;
 	bool adjust_resolution         = false;
 	bool discard_transform         = false;
-	bool reset_initial_guess       = true;
+	bool reset_initial_guess       = false;
 	bool set_initial_transform     = false;
 
 	Registration* registration                                                                   = nullptr;

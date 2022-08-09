@@ -12,6 +12,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
+// Message filter sync
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <std_msgs/msg/string.hpp>
+
 // REALSENSE
 #include <librealsense2/rs.hpp>
 // PCL
@@ -39,6 +45,11 @@ class FusionNode : public rclcpp::Node
 	typedef rclcpp::CallbackGroupType CallbackGroupType;
 	typedef rclcpp::FutureReturnCode FutureReturnCode;
 #endif
+
+	// Message filter sync
+	typedef message_filters::sync_policies::ApproximateTime<camera_interfaces::msg::DepthFrameset, camera_interfaces::msg::DepthFrameset>
+		FramesetSyncPolicy;
+	typedef message_filters::Synchronizer<FramesetSyncPolicy> FramesetSync;
 
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -82,6 +93,9 @@ private:
 	{
 		return (degrees * M_PI) / 180;
 	}
+
+	void framesetSyncCallback(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
+														const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right);
 
 private:
 	std::atomic<bool>* m_pExit_request;
@@ -192,4 +206,15 @@ private:
 
 	bool m_save_pointclouds = false;
 	unsigned m_ply_counter  = 0;
+
+
+	// Message filter sync
+	bool sync_debug = true;
+	message_filters::Subscriber<camera_interfaces::msg::DepthFrameset> subscriber_frameset_left;
+	message_filters::Subscriber<camera_interfaces::msg::DepthFrameset> subscriber_frameset_right;
+	FramesetSync* frameset_sync;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_sync_debug_publisher = nullptr;
+	system_clock::time_point m_sync_start_time;
+	void processSyncedFrames(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
+							   const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right);
 };

@@ -73,6 +73,9 @@ RegistrationNode::RegistrationNode() :
 	this->declare_parameter("max_iterations", 1000);
 	this->get_parameter("max_iterations", max_iterations);
 
+	this->declare_parameter("cam_upside_down", true);
+	this->get_parameter("cam_upside_down", cam_upside_down);
+
 	if (verbose)
 	{
 		std::cout << "Quality of service:" << std::endl;

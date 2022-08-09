@@ -3,10 +3,8 @@
 /**
  * @brief Contructor.
  */
-ImageNode::ImageNode() :
-	Node("image_node", rclcpp::NodeOptions().use_intra_process_comms(false))
+ImageNode::ImageNode() : Node("image_node", rclcpp::NodeOptions().use_intra_process_comms(false))
 {
-	
 }
 
 /**
@@ -14,21 +12,33 @@ ImageNode::ImageNode() :
  */
 void ImageNode::init()
 {
-	//m_depth_subscription = this->create_subscription<sensor_msgs::msg::Image>(m_topic_depth, m_qos_profile, std::bind(&ImageNode::depthCallback, this, std::placeholders::_1));
-	// m_frameset_subscription = this->create_subscription<camera_interfaces::msg::DepthFrameset>(m_topic_frameset, m_qos_profile, std::bind(&ImageNode::framesetCallback, this, std::placeholders::_1));
-	// cv::namedWindow(m_window_name_color, cv::WINDOW_AUTOSIZE);
+	// std::cout << "OpenCV build information:" << std::endl << cv::getBuildInformation() << std::endl;
+
+	// m_depth_subscription = this->create_subscription<sensor_msgs::msg::Image>(m_topic_depth, m_qos_profile, std::bind(&ImageNode::depthCallback, this, std::placeholders::_1));
+	//  m_frameset_subscription = this->create_subscription<camera_interfaces::msg::DepthFrameset>(m_topic_frameset, m_qos_profile, std::bind(&ImageNode::framesetCallback, this, std::placeholders::_1));
+	//  cv::namedWindow(m_window_name_color, cv::WINDOW_AUTOSIZE);
+	//  cv::namedWindow(m_window_name_depth, cv::WINDOW_AUTOSIZE);
+
+	// m_image_small_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_image_small, m_qos_profile, std::bind(&ImageNode::imageSmallCallback, this, std::placeholders::_1));
+	// cv::namedWindow(m_window_name_image_small, cv::WINDOW_AUTOSIZE);
+
+	// m_depth_thr_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_depth, m_qos_profile, std::bind(&ImageNode::depthCallback, this, std::placeholders::_1));
 	// cv::namedWindow(m_window_name_depth, cv::WINDOW_AUTOSIZE);
 
-	//m_image_small_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_image_small, m_qos_profile, std::bind(&ImageNode::imageSmallCallback, this, std::placeholders::_1));
-	//cv::namedWindow(m_window_name_image_small, cv::WINDOW_AUTOSIZE);
-
-	//m_depth_thr_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_depth, m_qos_profile, std::bind(&ImageNode::depthCallback, this, std::placeholders::_1));
-	//cv::namedWindow(m_window_name_depth, cv::WINDOW_AUTOSIZE);
-
 	m_fused_image_subscription = this->create_subscription<sensor_msgs::msg::Image>(m_topic_fused_image, m_qos_profile, std::bind(&ImageNode::fusedCallback, this, std::placeholders::_1));
-	cv::namedWindow(m_window_name_fused, cv::WINDOW_AUTOSIZE);
+	// cv::namedWindow(m_window_name_fused, cv::WINDOW_AUTOSIZE);
+	cv::namedWindow(m_window_name_fused, cv::WINDOW_NORMAL);
+	// cv::namedWindow(m_window_name_fused, cv::WINDOW_GUI_NORMAL);
 	// if (!(cv::waitKey(1) < 0 && cv::getWindowProperty(m_window_name_fused, cv::WND_PROP_AUTOSIZE) >= 0))
 	// 	rclcpp::shutdown();
+
+	cv::resizeWindow(m_window_name_fused, 608, 1080);
+	// cv::createTrackbar("track1", m_window_name_fused, &value, 255, NULL);
+	std::string button1_name = "button1";
+	// auto callb = std::bind(&ImageNode::button1Callback, this, std::placeholders::_1, std::placeholders::_2);
+	// cv::ButtonCallback callb = std::bind(&ImageNode::button1Callback, this, std::placeholders::_1, std::placeholders::_2);
+	cv::createButton(button1_name, ImageNode::button1Callback, NULL, cv::QT_PUSH_BUTTON, 1);
+	// cv::createButton(button1_name, callb, NULL, cv::QT_PUSH_BUTTON, 1);
 }
 
 /**
@@ -39,15 +49,15 @@ void ImageNode::depthCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
 	cv::Size image_size(static_cast<int>(img_msg->width), static_cast<int>(img_msg->height));
 	cv::Mat color_image(image_size, CV_16UC1, (void *)img_msg->data.data(), cv::Mat::AUTO_STEP);
-	//cv::setWindowTitle(m_window_name_depth, std::to_string(m_loop_duration_depth));
-	//cv::setWindowTitle(m_window_name, std::to_string(0.0));
+	// cv::setWindowTitle(m_window_name_depth, std::to_string(m_loop_duration_depth));
+	// cv::setWindowTitle(m_window_name, std::to_string(0.0));
 	cv::cvtColor(color_image, color_image, cv::COLOR_RGB2BGR);
 	imshow(m_window_name_depth, color_image);
 
 	if (!(cv::waitKey(1) < 0 && cv::getWindowProperty(m_window_name_depth, cv::WND_PROP_AUTOSIZE) >= 0))
 		rclcpp::shutdown();
 
-	m_loop_duration_depth = (hires_clock::now()- m_callback_time_depth).count() / 1e6;
+	m_loop_duration_depth = (hires_clock::now() - m_callback_time_depth).count() / 1e6;
 	m_callback_time_depth = hires_clock::now();
 }
 
@@ -55,18 +65,17 @@ void ImageNode::imageSmallCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
 	cv::Size image_size(static_cast<int>(img_msg->width), static_cast<int>(img_msg->height));
 	cv::Mat color_image(image_size, CV_8UC3, (void *)img_msg->data.data(), cv::Mat::AUTO_STEP);
-	//cv::setWindowTitle(m_window_name_image_small, std::to_string(m_loop_duration_image_small));
-	//cv::setWindowTitle(m_window_name, std::to_string(0.0));
+	// cv::setWindowTitle(m_window_name_image_small, std::to_string(m_loop_duration_image_small));
+	// cv::setWindowTitle(m_window_name, std::to_string(0.0));
 	cv::cvtColor(color_image, color_image, cv::COLOR_RGB2BGR);
 	imshow(m_window_name_image_small, color_image);
 
 	if (!(cv::waitKey(1) < 0 && cv::getWindowProperty(m_window_name_image_small, cv::WND_PROP_AUTOSIZE) >= 0))
 		rclcpp::shutdown();
 
-	//m_loop_duration_image_small = (hires_clock::now() - m_callback_time_image_small).count() / 1e6;
-	//m_callback_time_image_small = hires_clock::now();
+	// m_loop_duration_image_small = (hires_clock::now() - m_callback_time_image_small).count() / 1e6;
+	// m_callback_time_image_small = hires_clock::now();
 }
-
 
 /**
  * @brief Callback function for reveived image message.
@@ -77,33 +86,38 @@ void ImageNode::framesetCallback(camera_interfaces::msg::DepthFrameset::UniquePt
 	cv::Size image_size(static_cast<int>(fset_msg.get()->color_image.width), static_cast<int>(fset_msg.get()->color_image.height));
 	cv::Mat color_image(image_size, CV_8UC3, (void *)fset_msg.get()->color_image.data.data(), cv::Mat::AUTO_STEP);
 	cv::Mat depth_image(image_size, CV_16UC1, (void *)fset_msg.get()->depth_image.data.data(), cv::Mat::AUTO_STEP);
-	//cv::Mat color_image = cv::imdecode(cv::Mat(fset_msg->color_image.data), cv::IMREAD_UNCHANGED);
-	//cv::setWindowTitle(m_window_name_frameset, std::to_string(m_loop_duration));
-	//cv::setWindowTitle(m_window_name, std::to_string(0.0));
+	// cv::Mat color_image = cv::imdecode(cv::Mat(fset_msg->color_image.data), cv::IMREAD_UNCHANGED);
+	// cv::setWindowTitle(m_window_name_frameset, std::to_string(m_loop_duration));
+	// cv::setWindowTitle(m_window_name, std::to_string(0.0));
 	cv::cvtColor(color_image, color_image, cv::COLOR_RGB2BGR);
 	cv::convertScaleAbs(depth_image, depth_image, 0.1);
 	imshow(m_window_name_color, color_image);
 	imshow(m_window_name_depth, depth_image);
 
-	if (!(cv::waitKey(1) < 0 && ((cv::getWindowProperty(m_window_name_color, cv::WND_PROP_AUTOSIZE) >= 0) || (cv::getWindowProperty(m_window_name_depth, cv::WND_PROP_AUTOSIZE) >= 0) )))
+	if (!(cv::waitKey(1) < 0 && ((cv::getWindowProperty(m_window_name_color, cv::WND_PROP_AUTOSIZE) >= 0) || (cv::getWindowProperty(m_window_name_depth, cv::WND_PROP_AUTOSIZE) >= 0))))
 		rclcpp::shutdown();
 
-	//m_loop_duration = (hires_clock::now()- m_callback_time).count() / 1e6;
-	//m_callback_time = hires_clock::now();
+	// m_loop_duration = (hires_clock::now()- m_callback_time).count() / 1e6;
+	// m_callback_time = hires_clock::now();
 }
 
 void ImageNode::fusedCallback(sensor_msgs::msg::Image::UniquePtr img_msg)
 {
 	cv::Size image_size(static_cast<int>(img_msg->width), static_cast<int>(img_msg->height));
 	cv::Mat color_image(image_size, CV_8UC3, (void *)img_msg->data.data(), cv::Mat::AUTO_STEP);
-	//cv::setWindowTitle(m_window_name_depth, std::to_string(m_loop_duration_depth));
-	//cv::setWindowTitle(m_window_name, std::to_string(0.0));
+	// cv::setWindowTitle(m_window_name_depth, std::to_string(m_loop_duration_depth));
+	// cv::setWindowTitle(m_window_name, std::to_string(0.0));
 	cv::cvtColor(color_image, color_image, cv::COLOR_RGB2BGR);
 	imshow(m_window_name_fused, color_image);
 
 	if (!(cv::waitKey(1) < 0 && cv::getWindowProperty(m_window_name_fused, cv::WND_PROP_AUTOSIZE) >= 0))
 		rclcpp::shutdown();
 
-	m_loop_duration_depth = (hires_clock::now()- m_callback_time_depth).count() / 1e6;
+	m_loop_duration_depth = (hires_clock::now() - m_callback_time_depth).count() / 1e6;
 	m_callback_time_depth = hires_clock::now();
+}
+
+void ImageNode::button1Callback(int state, void *userData)
+{
+	std::cout << "button1 pushed" << std::endl;
 }

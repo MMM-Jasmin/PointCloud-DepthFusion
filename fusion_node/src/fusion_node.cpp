@@ -179,13 +179,21 @@ void FusionNode::init()
 
 	// Quality of service
 	if (m_qos_sensor_data) m_qos_profile = rclcpp::SensorDataQoS();
-	m_qos_profile = m_qos_profile.keep_last(static_cast<size_t>(m_qos_history_depth));
+	// m_qos_profile = m_qos_profile.keep_last(static_cast<size_t>(m_qos_history_depth));
+
+	m_qos_profile = m_qos_profile.keep_last(2);
+	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(500));
+	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 
 	// Fused color image publisher
 	m_fused_publisher = image_transport::create_publisher(this, "/fused_image", m_qos_profile.get_rmw_qos_profile());
 
 	// Initialize framesets
-	initSyncFramesets();
+	if (!sync_debug)
+	{
+		initSyncFramesets();
+	}
 
 	// Transformation subscriber
 	CallbackGroup::SharedPtr callback_group_transform = this->create_callback_group(CallbackGroupType::MutuallyExclusive);
@@ -210,6 +218,19 @@ void FusionNode::init()
 				  << (m_qos_profile.get_rmw_qos_profile().reliability == rmw_qos_profile_sensor_data.reliability)
 				  << std::endl;
 		std::cout << " history depth: " << m_qos_profile.get_rmw_qos_profile().depth << std::endl;
+	}
+
+	if (sync_debug)
+	{
+		// Message filter sync
+		subscriber_frameset_left.subscribe(this, m_topic_frameset_left, m_qos_profile.get_rmw_qos_profile());
+		subscriber_frameset_right.subscribe(this, m_topic_frameset_right, m_qos_profile.get_rmw_qos_profile());
+		FramesetSyncPolicy frameset_sync_policy(4);
+		frameset_sync_policy.setAgePenalty(20.);
+		frameset_sync_policy.setMaxIntervalDuration(rclcpp::Duration(0, 17e6)); // rclcpp::Duration(seconds, nanoseconds)
+		frameset_sync = new FramesetSync(static_cast<const FramesetSyncPolicy &>(frameset_sync_policy), subscriber_frameset_left, subscriber_frameset_right);
+		frameset_sync->registerCallback(&FusionNode::framesetSyncCallback, this);
+		m_sync_debug_publisher = this->create_publisher<std_msgs::msg::String>("/fusion_sync_debug", m_qos_profile);
 	}
 }
 
@@ -519,6 +540,11 @@ void FusionNode::processFrames(camera_interfaces::msg::DepthFrameset::UniquePtr 
 	else
 		fused_transform = m_camera_transform;
 
+	if (m_vertical_image)
+	{
+		fused_transform.prerotate(Eigen::AngleAxisd(deg2rad(90.), Eigen::Vector3d::UnitZ()));
+	}
+
 	fused_cloud.transform(fused_transform);
 
 	double transform_fused_duration = getTiming(time_start);
@@ -790,4 +816,153 @@ void FusionNode::save_pointclouds_ply(Pointcloud &cloud_left, Pointcloud &cloud_
 		m_sync_timer->cancel();
 		rclcpp::shutdown();
 	}
+}
+
+void FusionNode::framesetSyncCallback(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
+																			const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right)
+{
+	double sync_duration_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(system_clock::now() - m_sync_start_time).count() / 1e6;
+	m_sync_start_time = system_clock::now();
+
+	rclcpp::Time stamp_left = frameset_msg_left->header.stamp;
+	rclcpp::Time stamp_right = frameset_msg_right->header.stamp;
+	double stamp_left_ms = stamp_left.nanoseconds() / 1e6;
+	long stamp_diff = (stamp_left - stamp_right).nanoseconds();
+	double stamp_diff_ms = stamp_diff / 1e6;
+
+	// Process frames
+	// processSyncedFrames(frameset_msg_left, frameset_msg_right);
+	auto future_publishdepth = std::async(&FusionNode::processSyncedFrames, this, frameset_msg_left, frameset_msg_right);
+
+	double latency_ms = (std::chrono::duration_cast<std::chrono::nanoseconds>(system_clock::now().time_since_epoch()).count() / 1e6) - stamp_left_ms;
+	std::ostringstream strstr("");
+	strstr << std::fixed << std::setprecision(2);
+	strstr << "sync callback: " << sync_duration_ms << " ms, " << 1000 / sync_duration_ms << " fps, diff: " << stamp_diff_ms << ", latency: " << latency_ms << " ms";
+	std::cout << strstr.str() << std::endl;
+	auto message = std_msgs::msg::String();
+	message.data = strstr.str();
+	m_sync_debug_publisher->publish(message);
+
+}
+
+void FusionNode::processSyncedFrames(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
+							   const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right)
+{
+	if (m_pExit_request->load())
+	{
+		m_sync_timer->cancel();
+		rclcpp::shutdown();
+	}
+
+	time_point callback_start = system_clock::now();
+	time_point time_start     = system_clock::now();
+
+	m_pDepth_frame_left  = reinterpret_cast<uint16_t *>(const_cast<uint8_t *>(frameset_msg_left.get()->depth_image.data.data()));
+	m_pColor_frame_left  = const_cast<uint8_t *>(frameset_msg_left.get()->color_image.data.data());
+	m_pDepth_frame_right = reinterpret_cast<uint16_t *>(const_cast<uint8_t *>(frameset_msg_right.get()->depth_image.data.data()));
+	m_pColor_frame_right = const_cast<uint8_t *>(frameset_msg_right.get()->color_image.data.data());
+
+	// Left frame
+	m_frameset_left.setColorFrame(m_pColor_frame_left);
+	if (m_align_frames)
+	{
+		m_frameset_left.setDepthFrameUnaligned(m_pDepth_frame_left);
+		m_frameset_left.alignDepthToColor(m_depth_scale_left);
+	}
+	else
+		m_frameset_left.setDepthFrame(m_pDepth_frame_left);
+
+	// Right frame
+	m_frameset_right.setColorFrame(m_pColor_frame_right);
+	if (m_align_frames)
+	{
+		m_frameset_left.setDepthFrameUnaligned(m_pDepth_frame_left);
+		m_frameset_left.alignDepthToColor(m_depth_scale_left);
+	}
+	else
+		m_frameset_right.setDepthFrame(m_pDepth_frame_right);
+
+	double copy_to_gpu_duration = getTiming(time_start);
+
+	const std::array<int, 4> roi_left = { 0, 0, m_intrinsics_depth_left.width, m_intrinsics_depth_left.height };
+	m_frameset_left.filterDepth(m_min_depth, m_max_depth, m_depth_scale_left, roi_left);
+	m_frameset_right.filterDepth(m_min_depth, m_max_depth, m_depth_scale_right);
+
+	double filter_frames_duration = getTiming(time_start);
+
+	// Deproject to point clouds
+	Pointcloud fused_cloud;
+	fused_cloud.setStream(m_frameset_left.getStream());
+	fused_cloud.allocate(m_frameset_left.getMaskCount() + m_frameset_right.getMaskCount());
+	fused_cloud.deproject(m_frameset_left, m_depth_scale_left);
+	Pointcloud cloud_right;
+	cloud_right.setStream(m_frameset_right.getStream());
+	cloud_right.deproject(m_frameset_right, m_depth_scale_right);
+
+	double deproject_duration = getTiming(time_start);
+
+	// Transform point clouds
+	cloud_right.transform(m_right_transform);
+	cudaStreamSynchronize(*m_frameset_right.getStream());
+
+	double transform_right_duration = getTiming(time_start);
+
+	// Fuse point clouds
+	fused_cloud.append(cloud_right);
+
+	double fuse_duration = getTiming(time_start);
+
+	// Transform fused pointcloud
+	Eigen::Affine3d fused_transform = Eigen::Affine3d::Identity();
+	if (!m_set_camera_pose)
+		interpolateTransform(fused_transform, m_left_transform, m_right_transform);
+	else
+		fused_transform = m_camera_transform;
+
+	if (m_vertical_image)
+	{
+		fused_transform.prerotate(Eigen::AngleAxisd(deg2rad(90.), Eigen::Vector3d::UnitZ()));
+	}
+
+	fused_cloud.transform(fused_transform);
+
+	double transform_fused_duration = getTiming(time_start);
+
+	// Project fused pointcloud
+	fused_cloud.project(m_fused_frameset, m_mirror_image);
+
+	double project_duration = getTiming(time_start);
+
+	// Filter fused image
+	m_fused_frameset.filterColor(m_use_median_filter);
+
+	double filter_fused_duration = getTiming(time_start);
+
+	// Copy image from gpu to host memory
+	m_fused_frameset.copyColorToHost(m_pFused_frame);
+
+	double copy_from_gpu_duration = getTiming(time_start);
+
+	// Save point clouds to ply files for debugging
+	if (m_save_pointclouds)
+	{
+		Pointcloud cloud_left;
+		cloud_left.setStream(m_frameset_left.getStream());
+		cloud_left.deproject(m_frameset_left, m_depth_scale_left);
+		save_pointclouds_ply(cloud_left, cloud_right, fused_transform);
+	}
+
+	// Publish fused image
+	const uint8_t *fused_msg_bytes = reinterpret_cast<const uint8_t *>(m_pFused_frame);
+	m_fused_msg.header.frame_id    = "camera_left_color_optical_frame";
+	m_fused_msg.header.stamp       = frameset_msg_left->header.stamp;
+	m_fused_msg.width              = static_cast<uint>(m_intrinsics_fused_image.width);
+	m_fused_msg.height             = static_cast<uint>(m_intrinsics_fused_image.height);
+	m_fused_msg.is_bigendian       = false;
+	m_fused_msg.step               = m_fused_msg.width * 3 * sizeof(uint8_t);
+	m_fused_msg.encoding           = "rgb8";
+	m_fused_msg.data.assign(fused_msg_bytes, fused_msg_bytes + (m_fused_msg.step * m_fused_msg.height));
+	m_fused_publisher.publish(m_fused_msg);
+
+	// double publish_duration = getTiming(time_start);
 }
