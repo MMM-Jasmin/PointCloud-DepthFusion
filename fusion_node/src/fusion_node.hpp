@@ -50,6 +50,7 @@ class FusionNode : public rclcpp::Node
 	typedef message_filters::sync_policies::ApproximateTime<camera_interfaces::msg::DepthFrameset, camera_interfaces::msg::DepthFrameset>
 		FramesetSyncPolicy;
 	typedef message_filters::Synchronizer<FramesetSyncPolicy> FramesetSync;
+	using Clock = std::chrono::high_resolution_clock;
 
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -214,7 +215,7 @@ private:
 	message_filters::Subscriber<camera_interfaces::msg::DepthFrameset> subscriber_frameset_right;
 	FramesetSync* frameset_sync;
 	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_sync_debug_publisher = nullptr;
-	system_clock::time_point m_sync_start_time;
+	Clock::time_point m_sync_start_time;
 	void processSyncedFrames(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
 							   const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right);
 };

@@ -821,8 +821,8 @@ void FusionNode::save_pointclouds_ply(Pointcloud &cloud_left, Pointcloud &cloud_
 void FusionNode::framesetSyncCallback(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left,
 																			const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right)
 {
-	double sync_duration_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(system_clock::now() - m_sync_start_time).count() / 1e6;
-	m_sync_start_time = system_clock::now();
+	double sync_duration_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - m_sync_start_time).count() / 1e6;
+	m_sync_start_time = Clock::now();
 
 	rclcpp::Time stamp_left = frameset_msg_left->header.stamp;
 	rclcpp::Time stamp_right = frameset_msg_right->header.stamp;
@@ -834,7 +834,7 @@ void FusionNode::framesetSyncCallback(const camera_interfaces::msg::DepthFramese
 	// processSyncedFrames(frameset_msg_left, frameset_msg_right);
 	auto future_publishdepth = std::async(&FusionNode::processSyncedFrames, this, frameset_msg_left, frameset_msg_right);
 
-	double latency_ms = (std::chrono::duration_cast<std::chrono::nanoseconds>(system_clock::now().time_since_epoch()).count() / 1e6) - stamp_left_ms;
+	double latency_ms = (std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count() / 1e6) - stamp_left_ms;
 	std::ostringstream strstr("");
 	strstr << std::fixed << std::setprecision(2);
 	strstr << "sync callback: " << sync_duration_ms << " ms, " << 1000 / sync_duration_ms << " fps, diff: " << stamp_diff_ms << ", latency: " << latency_ms << " ms";
