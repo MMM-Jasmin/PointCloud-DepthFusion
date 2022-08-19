@@ -20,7 +20,7 @@ set(PROJECT_BINARY ${PROJECT_NAME})
 set(PROJECT_LIBRARY ${PROJECT_NAME}_lib)
 
 file(GLOB_RECURSE SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
-file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.h)
+file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.hpp ${PROJECT_SOURCE_DIR}/include/*.h)
 #message(STATUS "SOURCE_FILES:\t" ${SOURCE_FILES})
 #message(STATUS "HEADER_FILES:\t" ${HEADER_FILES})
 
@@ -54,19 +54,6 @@ target_link_libraries(${PROJECT_BINARY} stdc++fs)
 ##################
 ## Dependencies ##
 ##################
-#### RealSense2 ####
-find_package(realsense2 REQUIRED)
-message(STATUS "+==========[ RealSense2 ]===========")
-if (realsense2_FOUND)
-	message(STATUS "|  RealSense2 version:\t" ${realsense2_VERSION})
-	message(STATUS "|  RealSense2 include:\t" ${realsense2_INCLUDE_DIR})
-	message(STATUS "|  RealSense2 library:\t" ${realsense2_LIBRARY})
-	include_directories("${realsense2_INCLUDE_DIR}")
-	target_link_libraries(${PROJECT_BINARY} ${realsense2_LIBRARY})
-else (realsense2_FOUND)
-	message(STATUS "|  RealSense2 not found!")
-endif (realsense2_FOUND)
-message(STATUS "+===================================")
 
 #### OpenCV ####
 find_package(OpenCV REQUIRED)
@@ -166,8 +153,8 @@ find_package(image_transport REQUIRED)
 
 find_package(camera_interfaces REQUIRED)
 find_package(camera_node REQUIRED)
-include_directories(${camera_node_INCLUDE_DIR})
-target_link_libraries(${PROJECT_BINARY} camera_node::camera_node_lib)
+#include_directories(${camera_node_INCLUDE_DIR})
+#target_link_libraries(${PROJECT_BINARY} camera_node::camera_node_lib)
 
 find_package(pointcloud_processing REQUIRED)
 include_directories(${pointcloud_processing_INCLUDE_DIR})
@@ -201,9 +188,7 @@ ament_target_dependencies(
 	"tf2_geometry_msgs"
 	"pcl_conversions"
 	"image_transport"
-
 	"camera_interfaces"
-	"camera_node"
 	"pointcloud_processing"
 )
 

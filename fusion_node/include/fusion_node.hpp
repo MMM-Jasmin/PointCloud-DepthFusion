@@ -12,14 +12,18 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-// REALSENSE
-#include <librealsense2/rs.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
 // PCL
 #include <pcl/io/ply_io.h>
 // PROJECT
 #include "camera_interfaces/msg/depth_frameset.hpp"
 #include "camera_interfaces/srv/get_camera_parameters.hpp"
 #include "pointcloud_processing/pointcloud.h"
+
+#include "Timer.h"
 
 /**
  * @brief ROS node for fusing point clouds generated from input framesets and project merged point cloud to output
@@ -40,6 +44,12 @@ class FusionNode : public rclcpp::Node
 	typedef rclcpp::FutureReturnCode FutureReturnCode;
 #endif
 
+	// Message filter sync
+	typedef message_filters::sync_policies::ApproximateTime<camera_interfaces::msg::DepthFrameset, camera_interfaces::msg::DepthFrameset>
+		FramesetSyncPolicy;
+	typedef message_filters::Synchronizer<FramesetSyncPolicy> FramesetSync;
+	using Clock = std::chrono::high_resolution_clock;
+
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	FusionNode(const std::string& name = "fusion_node");
@@ -58,6 +68,7 @@ private:
 	void initSyncFramesets();
 	void framesetRightCallback(camera_interfaces::msg::DepthFrameset::UniquePtr msg);
 	void syncFramesetsTimerCallback();
+	void processFramesCallback();
 
 	void interpolateTransform(Eigen::Affine3d& interpolated_transform, const Eigen::Affine3d& left_transform, const Eigen::Affine3d& right_transform);
 	void transformCallback(const geometry_msgs::msg::TransformStamped::SharedPtr transform_msg);
@@ -71,8 +82,6 @@ private:
 
 	double getTiming(time_point& start_time);
 
-	void save_pointclouds_ply(Pointcloud& cloud_left, Pointcloud& cloud_right, Eigen::Affine3d& fused_transform);
-
 	/**
 	 * @brief Convert degrees to radians.
 	 * @param degrees Angle in degrees
@@ -82,6 +91,10 @@ private:
 	{
 		return (degrees * M_PI) / 180;
 	}
+
+	void PrintFPS(const float fps, const float itrTime);
+	void CheckFPS(uint64_t* pFrameCnt);
+	void framesetSyncCallback(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left, const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right);
 
 private:
 	std::atomic<bool>* m_pExit_request;
@@ -119,10 +132,11 @@ private:
 	rclcpp::Subscription<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_left_subscription;
 	rclcpp::Subscription<camera_interfaces::msg::DepthFrameset>::SharedPtr m_frameset_right_subscription;
 	rclcpp::TimerBase::SharedPtr m_sync_timer;
+	rclcpp::TimerBase::SharedPtr m_process_timer;
 	std::queue<camera_interfaces::msg::DepthFrameset::UniquePtr> m_frameset_left_msg_queue;
 	std::queue<camera_interfaces::msg::DepthFrameset::UniquePtr> m_frameset_right_msg_queue;
-	mutable std::mutex m_mutex_frameset_left;
-	mutable std::mutex m_mutex_frameset_right;
+	std::mutex m_mutex_frameset_left;
+	std::mutex m_mutex_frameset_right;
 	std::atomic_int m_frameset_left_counter;
 	std::atomic_int m_frameset_right_counter;
 
@@ -192,4 +206,20 @@ private:
 
 	bool m_save_pointclouds = false;
 	unsigned m_ply_counter  = 0;
+
+
+	bool m_print_fps = true;
+	uint64_t m_frameCnt = 0;
+	std::string m_FPS_STR = "test";
+	Timer m_timer;        // Timer used to measure the time required for one iteration
+	double m_elapsedTime; // Sum of the elapsed time, used to check if one second has passed
+
+	message_filters::Subscriber<camera_interfaces::msg::DepthFrameset> subscriber_frameset_left;
+	message_filters::Subscriber<camera_interfaces::msg::DepthFrameset> subscriber_frameset_right;
+	FramesetSync* frameset_sync;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_sync_debug_publisher = nullptr;
+	Clock::time_point m_sync_start_time;
+	void processSyncedFrames(const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_left, const camera_interfaces::msg::DepthFrameset::ConstSharedPtr& frameset_msg_right);
+
+
 };

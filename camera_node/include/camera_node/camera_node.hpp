@@ -1,5 +1,4 @@
 #pragma once
-#define CAMERA_NODE_USE_MULTITHREADED_EXECUTOR 0
 
 #include <thread>
 #include <future>
@@ -30,20 +29,6 @@
  */
 class CameraNode : public rclcpp::Node
 {
-	typedef std::chrono::high_resolution_clock::time_point time_point;
-	typedef std::chrono::high_resolution_clock hires_clock;
-#if defined(ROS_ELOQUENT)
-	typedef rclcpp::callback_group::CallbackGroup CallbackGroup;
-	typedef rclcpp::callback_group::CallbackGroupType CallbackGroupType;
-#else
-	typedef rclcpp::CallbackGroup CallbackGroup;
-	typedef rclcpp::CallbackGroupType CallbackGroupType;
-#endif
-#if CAMERA_NODE_USE_MULTITHREADED_EXECUTOR
-	typedef rclcpp::executors::MultiThreadedExecutor Executor;
-#else
-	typedef rclcpp::executors::SingleThreadedExecutor Executor;
-#endif
 
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -81,7 +66,6 @@ private:
 
 private:
 	std::atomic<bool>* m_pExit_request = nullptr;
-	std::string m_package_share_directory;
 	bool m_verbose          = false;
 	bool m_debug            = false;
 	bool m_use_rs_align     = true;
@@ -101,13 +85,11 @@ private:
 	//rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_publisher 					= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_image_small_publisher 				= nullptr;
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_depth_image_publisher 				= nullptr;
-	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_fps_publisher 	=	 nullptr;
-
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_fps_publisher 						= nullptr;
 	
 	Config* m_pConfig       = nullptr;
 	Realsense* m_pRealsense = nullptr;
 
-	std::chrono::high_resolution_clock::time_point m_global_timer = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(0));
 	rclcpp::Time m_last_frame_timestamp;
 	Intrinsics m_color_intrinsics;
 	Intrinsics m_depth_intrinsics;
@@ -122,17 +104,13 @@ private:
 	uint16_t* m_pDepth_frame_0 = nullptr;
 	uint16_t* m_pDepth_frame_1 = nullptr;
 
-	rclcpp::Time m_ros_timestamp;
-
 	sensor_msgs::msg::CameraInfo m_color_camerainfo;
 	sensor_msgs::msg::CameraInfo m_depth_camerainfo;
 	sensor_msgs::msg::Image::SharedPtr m_color_msg = nullptr;
 	sensor_msgs::msg::Image::SharedPtr m_depth_msg = nullptr;
 	Frameset m_frameset;
-	//time_point m_timer = hires_clock::now();
 
 	rclcpp::Service<camera_interfaces::srv::GetCameraParameters>::SharedPtr m_service = nullptr;
-	double m_fps_avg                                                                  = 0.0;
 	void PrintFPS(const float fps, const float itrTime);
 	void CheckFPS(uint64_t* pFrameCnt);
 };
