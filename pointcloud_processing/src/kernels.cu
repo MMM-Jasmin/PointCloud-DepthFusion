@@ -634,22 +634,32 @@ void Kernels::filter_color_gauss_npp(uint8_t* dev_color, uint8_t* dev_color_buff
 	Npp8u* dev_color_npp = reinterpret_cast<Npp8u*>(dev_color);
 	// Mask size
 	NppiMaskSize mask_size = NPP_MASK_SIZE_3_X_3;
+	// Mask border size
+	int mask_border_size = 1;
 	// Region of interest size
-	NppiSize roi_size = {static_cast<int>(width - 2), static_cast<int>(height - 2)};
+	// NppiSize roi_size = {static_cast<int>(width - 2), static_cast<int>(height - 2)};
+	NppiSize roi_size = {static_cast<int>(width) - (mask_border_size * 2),
+	                     static_cast<int>(height) - (mask_border_size * 2)};
 	// Number of bytes between successive rows in the image
 	Npp32s img_step = static_cast<int>(width * sizeof(Npp8u) * 3);
+	// Start of ROI pixel: address of image pointer with offset in bytes applied on temp input buffer
+	// int roi_offset = mask_border_size * img_step + mask_border_size * static_cast<int>(sizeof(Npp8u)) * 3;
+	int roi_offset = mask_border_size * img_step + mask_border_size * 3;
 
 	// Copy image to temporary input buffer
 	Npp8u* dev_color_buffer_npp = reinterpret_cast<Npp8u*>(dev_color_buffer);
 	checkError(cudaMemcpyAsync(dev_color_buffer_npp, dev_color, sizeof(Npp8u) * width * height * 3,
 	                           cudaMemcpyDeviceToDevice, stream),
 	           "Kernels cudaMemcpy dev_color to dev_color_buffer");
-
+return;
 	// Apply filter
 	// Filter kernels for this function are calculated using a sigma value of 0.4F + (mask width / 2) * 0.6F.
 	checkNppError(nppiFilterGauss_8u_C3R_Ctx(dev_color_buffer_npp + img_step + 3, img_step, dev_color_npp + img_step + 3,
 	                                         img_step, roi_size, mask_size, npp_context),
 	              "Kernels filter_color_gauss_npp");
+	// checkNppError(nppiFilterGauss_8u_C3R_Ctx(dev_color_buffer_npp, img_step, dev_color_npp,
+	//                                          img_step, roi_size, mask_size, npp_context),
+	//               "Kernels filter_color_gauss_npp");
 }
 
 void Kernels::filter_depth_median_npp(uint16_t* dev_depth, const uint width, const uint height, cudaStream_t& stream,

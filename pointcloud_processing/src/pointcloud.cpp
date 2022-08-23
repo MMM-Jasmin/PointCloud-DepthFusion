@@ -88,6 +88,7 @@ void Pointcloud::transform()
  */
 void Pointcloud::transform(const Eigen::Affine3d& transform)
 {
+	cudaStreamSynchronize(stream);
 	setTransform(transform);
 	this->transform();
 }

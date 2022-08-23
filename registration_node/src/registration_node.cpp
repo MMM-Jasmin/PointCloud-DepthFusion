@@ -117,8 +117,12 @@ void RegistrationNode::init()
 	transform_filename      = package_share_directory + "/config/transform.txt";
 
 	// Quality of service
-	if (qos_sensor_data) qos_profile = rclcpp::SensorDataQoS();
-	qos_profile = qos_profile.keep_last(static_cast<size_t>(qos_history_depth));
+	// if (qos_sensor_data) qos_profile = rclcpp::SensorDataQoS();
+	// qos_profile = qos_profile.keep_last(static_cast<size_t>(qos_history_depth));
+	qos_profile = qos_profile.keep_last(2);
+	qos_profile = qos_profile.lifespan(std::chrono::milliseconds(500));
+	qos_profile = qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	qos_profile = qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 
 	rmw_qos_profile_t image_rmw_qos_profile = qos_profile.get_rmw_qos_profile();
 	rclcpp::QoS cloud_qos_profile           = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
