@@ -119,6 +119,7 @@ void FusionNode::init() {
 	Kernels::init_cuda(false);
 	cudaStreamCreateWithFlags(&m_cuda_stream_left, cudaStreamNonBlocking);
 	cudaStreamCreateWithFlags(&m_cuda_stream_right, cudaStreamNonBlocking);
+	cudaStreamCreateWithFlags(&m_cuda_stream_fused, cudaStreamNonBlocking);
 
 	// Allocate frames
 	allocateFrames();
@@ -137,7 +138,6 @@ void FusionNode::init() {
 	frameset_sync = new FramesetSync(static_cast<const FramesetSyncPolicy &>(frameset_sync_policy),
 	                                 subscriber_frameset_left, subscriber_frameset_right);
 	frameset_sync->registerCallback(&FusionNode::framesetSyncCallback, this);
-	cudaStreamCreateWithFlags(&m_cuda_stream_fused, cudaStreamNonBlocking);
 
 	// Fused image buffers
 	for (int i = 0; i < m_fusedbuffer_count; i++) {
