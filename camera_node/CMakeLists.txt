@@ -209,13 +209,12 @@ include_directories(${pointcloud_processing_INCLUDE_DIR})
 target_link_libraries(${PROJECT_BINARY} pointcloud_processing::pointcloud_processing)
 target_link_libraries(${PROJECT_LIBRARY} pointcloud_processing::pointcloud_processing)
 
-# Preprocessor define for ros2 distribution eloquent elusor
-if ($ENV{ROS_DISTRO} STREQUAL "eloquent")
-	target_compile_definitions(${PROJECT_BINARY} PRIVATE ROS_ELOQUENT)
-	target_compile_definitions(${PROJECT_LIBRARY} PRIVATE ROS_ELOQUENT)
-endif ()
+# Preprocessor define for ros2 distribution
+string(TOUPPER $ENV{ROS_DISTRO} ROS_DISTRO)
+set(ROS_DISTRO "ROS_${ROS_DISTRO}")
+target_compile_definitions(${PROJECT_BINARY} PRIVATE ${ROS_DISTRO})
 message(STATUS "+==========[ ROS2 ]===========")
-message(STATUS "|  Distribution:\t" $ENV{ROS_DISTRO})
+message(STATUS "|  Distribution:\t" ${ROS_DISTRO})
 message(STATUS "+===================================")
 
 ###########

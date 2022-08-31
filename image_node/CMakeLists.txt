@@ -83,13 +83,12 @@ find_package(pcl_conversions REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(camera_interfaces REQUIRED)
 
-# Preprocessor define for ros2 distribution eloquent elusor
-if ($ENV{ROS_DISTRO} STREQUAL "eloquent")
-	target_compile_definitions(${PROJECT_BINARY} PRIVATE ROS_ELOQUENT)
-	target_compile_definitions(${PROJECT_LIBRARY} PRIVATE ROS_ELOQUENT)
-endif ()
+# Preprocessor define for ros2 distribution
+string(TOUPPER $ENV{ROS_DISTRO} ROS_DISTRO)
+set(ROS_DISTRO "ROS_${ROS_DISTRO}")
+target_compile_definitions(${PROJECT_BINARY} PRIVATE ${ROS_DISTRO})
 message(STATUS "+==========[ ROS2 ]===========")
-message(STATUS "|  Distribution:\t" $ENV{ROS_DISTRO})
+message(STATUS "|  Distribution:\t" ${ROS_DISTRO})
 message(STATUS "+===================================")
 
 ###########

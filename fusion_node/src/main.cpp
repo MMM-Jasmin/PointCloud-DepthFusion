@@ -3,9 +3,9 @@
 #include <csignal>
 #include <cstdio>
 #include <pthread.h>
-#include <sys/resource.h> // setpriority
-#include <sys/syscall.h>  // SYS_gettid
-#include <sys/time.h>     // setpriority
+#include <sys/resource.h>  // setpriority
+#include <sys/syscall.h>   // SYS_gettid
+#include <sys/time.h>      // setpriority
 // ROS2
 #include <rclcpp/rclcpp.hpp>
 // PROJECT
@@ -24,8 +24,7 @@ static std::atomic<bool> exit_request(false);
  * @param argument The command line argument to check for
  * @return True if command line argument exists, false otherwise
  */
-bool cmdArgExists(char **begin, char **end, const std::string &argument)
-{
+bool cmdArgExists(char **begin, char **end, const std::string &argument) {
 	return std::find(begin, end, argument) != end;
 }
 
@@ -36,11 +35,9 @@ bool cmdArgExists(char **begin, char **end, const std::string &argument)
  * @param argument Command line argument to get the value for
  * @return Pointer to the command line argument value
  */
-char *getCmdArg(char **begin, char **end, const std::string &argument)
-{
+char *getCmdArg(char **begin, char **end, const std::string &argument) {
 	char **itr = std::find(begin, end, argument);
-	if (itr != end && ++itr != end)
-		return *itr;
+	if (itr != end && ++itr != end) return *itr;
 
 	return nullptr;
 }
@@ -49,8 +46,7 @@ char *getCmdArg(char **begin, char **end, const std::string &argument)
  * @brief Handler for received process signals.
  * @param signum Code of the received signal
  */
-void signalHandler(int signum)
-{
+void signalHandler(int signum) {
 	std::cout << "+==========[ Signal " << signum << " Abort ]==========+" << std::endl;
 	exit_request.store(true);
 }
@@ -61,18 +57,46 @@ void signalHandler(int signum)
  * @param argv Given command line arguments
  * @return EXIT_SUCCESS (0) on clean exit, EXIT_FAILURE (1) on error state
  */
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	bool standalone = false;
 
-	if (cmdArgExists(argv, argv + argc, "--standalone"))
-		standalone = true;
+	if (cmdArgExists(argv, argv + argc, "--standalone")) standalone = true;
 
 	signal(SIGINT, signalHandler);
 
 	std::cout << "+==========[ Fusion Node ]==========+" << std::endl;
 	rclcpp::init(argc, argv);
 
+	std::shared_ptr<FusionNode> fusion_node = std::shared_ptr<FusionNode>(new FusionNode);
+	fusion_node->setExitSignal(&exit_request);
+	fusion_node->init();
+	rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2, false);
+	executor.add_node(fusion_node);
+
+	auto spin_funct = [&executor]() {
+		id_t tid = static_cast<unsigned>(syscall(SYS_gettid));
+		int ret = ::setpriority(PRIO_PROCESS, tid, -20);
+		if (ret) {
+			std::cout << "Unable to set nice value for thread" << std::endl;
+			return;
+		}
+		executor.spin();
+	};
+
+	std::thread spin_thread(spin_funct);
+
+	// Set affinity
+	// size_t thread_core_id = 1;
+	// cpu_set_t cpuset;
+	// CPU_ZERO(&cpuset);
+	// CPU_SET(thread_core_id, &cpuset);
+	// int rc = pthread_setaffinity_np(spin_thread.native_handle(), sizeof(cpu_set_t), &cpuset);
+	// if (rc != 0) std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
+
+	spin_thread.join();
+	executor.cancel();
+
+	/*
 	// std::make_shared conflicts with Eigen member variable alignment
 	std::shared_ptr<FusionNode> fusion_node = std::shared_ptr<FusionNode>(new FusionNode);
 	std::shared_ptr<CameraNode> camera_node = nullptr;
@@ -81,53 +105,53 @@ int main(int argc, char **argv)
 
 	if (!standalone)
 	{
-		camera_node = std::make_shared<CameraNode>("camera_left");
-		camera_node->setExitSignal(&exit_request);
-		camera_node->init();
+	  camera_node = std::make_shared<CameraNode>("camera_left");
+	  camera_node->setExitSignal(&exit_request);
+	  camera_node->init();
 
-		executor1.add_node(camera_node);
+	  executor1.add_node(camera_node);
 	}
 
 	auto spin_funct1 = [&executor1]() {
-		id_t tid = static_cast<unsigned>(syscall(SYS_gettid));
-		int ret  = ::setpriority(PRIO_PROCESS, tid, -20);
-		if (ret)
-		{
-			std::cout << "Unable to set nice value for thread 1" << std::endl;
-			return;
-		}
-		executor1.spin();
+	  id_t tid = static_cast<unsigned>(syscall(SYS_gettid));
+	  int ret  = ::setpriority(PRIO_PROCESS, tid, -20);
+	  if (ret)
+	  {
+	    std::cout << "Unable to set nice value for thread 1" << std::endl;
+	    return;
+	  }
+	  executor1.spin();
 	};
 
 	std::thread spin_thread1;
 	if (!standalone)
-		spin_thread1 = std::thread(spin_funct1);
+	  spin_thread1 = std::thread(spin_funct1);
 
 	fusion_node->setExitSignal(&exit_request);
 	fusion_node->init();
 	if (exit_request.load())
 	{
-		executor1.cancel();
-		if (spin_thread1.joinable())
-			spin_thread1.join();
-		if (rclcpp::ok())
-			rclcpp::shutdown();
-		return EXIT_SUCCESS;
+	  executor1.cancel();
+	  if (spin_thread1.joinable())
+	    spin_thread1.join();
+	  if (rclcpp::ok())
+	    rclcpp::shutdown();
+	  return EXIT_SUCCESS;
 	}
 	rclcpp::executors::MultiThreadedExecutor executor2(
-		rclcpp::executor::ExecutorArgs(), 2, false);
+	  rclcpp::executor::ExecutorArgs(), 2, false);
 
 	executor2.add_node(fusion_node);
 
 	auto spin_funct2 = [&executor2]() {
-		id_t tid = static_cast<unsigned>(syscall(SYS_gettid));
-		int ret  = ::setpriority(PRIO_PROCESS, tid, -20);
-		if (ret)
-		{
-			std::cout << "Unable to set nice value for thread 2" << std::endl;
-			return;
-		}
-		executor2.spin();
+	  id_t tid = static_cast<unsigned>(syscall(SYS_gettid));
+	  int ret  = ::setpriority(PRIO_PROCESS, tid, -20);
+	  if (ret)
+	  {
+	    std::cout << "Unable to set nice value for thread 2" << std::endl;
+	    return;
+	  }
+	  executor2.spin();
 	};
 
 	std::thread spin_thread2(spin_funct2);
@@ -135,14 +159,14 @@ int main(int argc, char **argv)
 	// Set affinity
 	if (!standalone)
 	{
-		size_t thread1_core_id = 0;
-		cpu_set_t cpuset1;
-		CPU_ZERO(&cpuset1);
-		CPU_SET(thread1_core_id, &cpuset1);
-		int rc = pthread_setaffinity_np(spin_thread1.native_handle(),
-										sizeof(cpu_set_t), &cpuset1);
-		if (rc != 0)
-			std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
+	  size_t thread1_core_id = 0;
+	  cpu_set_t cpuset1;
+	  CPU_ZERO(&cpuset1);
+	  CPU_SET(thread1_core_id, &cpuset1);
+	  int rc = pthread_setaffinity_np(spin_thread1.native_handle(),
+	                  sizeof(cpu_set_t), &cpuset1);
+	  if (rc != 0)
+	    std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
 	}
 	size_t thread2_core_id = 1;
 	cpu_set_t cpuset2;
@@ -151,14 +175,15 @@ int main(int argc, char **argv)
 	int rc = pthread_setaffinity_np(spin_thread2.native_handle(), sizeof(cpu_set_t), &cpuset2);
 
 	if (rc != 0)
-		std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
+	  std::cerr << "Error calling pthread_setaffinity_np: " << rc << std::endl;
 
 	if (!standalone)
-		spin_thread1.join();
+	  spin_thread1.join();
 	spin_thread2.join();
 
 	executor1.cancel();
 	executor2.cancel();
+	*/
 
 	rclcpp::shutdown();
 

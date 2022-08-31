@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 	camera_node->setExitSignal(&exit_request);
 	camera_node->init();
 
-	//rclcpp::executors::MultiThreadedExecutor executor(rclcpp::executor::ExecutorArgs(), 3, false);
-	rclcpp::executors::SingleThreadedExecutor executor;
+	// rclcpp::executors::SingleThreadedExecutor executor;
+	rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2, false);
 	executor.add_node(camera_node);
 	executor.spin();
 

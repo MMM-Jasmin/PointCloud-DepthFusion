@@ -13,7 +13,11 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#if defined(ROS_HUMBLE)
+#include <tf2_eigen/tf2_eigen.hpp>
+#else
 #include <tf2_eigen/tf2_eigen.h>
+#endif
 // ICP
 #include <fast_gicp/cuda/fast_vgicp_cuda.cuh>
 // PROJECT
