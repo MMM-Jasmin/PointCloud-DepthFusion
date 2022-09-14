@@ -77,6 +77,16 @@ FusionNode::~FusionNode() {}
  * @brief Initialize ROS node.
  */
 void FusionNode::init() {
+	// Load camera transformation matrix
+	std::string calibration_node_name = "calibration_node";
+	std::string calibration_package_share_directory = ament_index_cpp::get_package_share_directory(calibration_node_name);
+	std::string transform_filename = calibration_package_share_directory + "/data/" + "camera_transformation.txt";
+	if (std::experimental::filesystem::exists(transform_filename)) {
+		if (loadTransform(m_right_transform, transform_filename)) {
+			std::cout << "Load camera transformation file from calibration node: " << transform_filename << std::endl;
+		}
+	}
+
 	// Fetch camera parameters and initialize intrinsics
 	initCameraParameters();
 
@@ -1059,4 +1069,57 @@ void FusionNode::publishFrame(const camera_interfaces::msg::DepthFrameset::Const
 	auto message = std_msgs::msg::String();
 	message.data = "publish frame";
 	m_process_debug_publisher->publish(message);
+}
+
+/**
+ * @brief Load transformation from disk.
+ * @param transform Affine transformation read from disk
+ * @param filename Filename
+ * @return True on success
+ */
+bool FusionNode::loadTransform(Eigen::Affine3d &transform, const std::string filename) {
+	std::ifstream file;
+	bool matrix_bad = false;
+	bool file_exists = std::experimental::filesystem::exists(filename);
+	if (file_exists) {
+		file.open(filename, std::ios::in);
+	} else {
+		std::cout << "Transform file does not exist: " << filename << std::endl;
+	}
+
+	if (file.is_open()) {
+		std::vector<double> matrix_entries;
+		std::string matrix_row_string;
+		std::string matrix_entry;
+		int matrix_row_number = 0;
+		int matrix_col_number = 0;
+
+		while (getline(file, matrix_row_string)) {
+			std::stringstream matrix_row_stringstream(matrix_row_string);
+			while (getline(matrix_row_stringstream, matrix_entry, ' ')) {
+				matrix_entries.push_back(std::stod(matrix_entry));
+				matrix_col_number++;
+				if (matrix_col_number >= 4) break;
+			}
+			matrix_col_number = 0;
+			matrix_row_number++;
+			if (matrix_row_number >= 4) break;
+		}
+		file.close();
+
+		Eigen::Matrix4d matrix = Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor>>(matrix_entries.data());
+		transform.matrix() = matrix;
+
+		if (matrix_row_number < 3) matrix_bad = true;
+	}
+	if (!file_exists || matrix_bad || file.bad()) {
+		if (file.is_open()) file.close();
+		transform.matrix().setIdentity();
+		std::cout << "Initial transform set to identity" << std::endl;
+		return false;
+	}
+	if (m_verbose) {
+		std::cout << "Icp transform file loaded: " << filename << std::endl;
+	}
+	return true;
 }

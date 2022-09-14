@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <queue>
+#include <experimental/filesystem>
 // ROS
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <image_transport/image_transport.hpp>
@@ -127,6 +128,7 @@ class FusionNode : public rclcpp::Node {
 	Eigen::Affine3d m_left_transform = Eigen::Affine3d::Identity();
 	Eigen::Affine3d m_right_transform = Eigen::Affine3d::Identity();
 	rclcpp::Subscription<geometry_msgs::msg::TransformStamped>::SharedPtr m_transform_subscription;
+	bool loadTransform(Eigen::Affine3d& transform, const std::string filename);
 
 	// Frames
 	uint8_t* m_p_color_frame_left;
