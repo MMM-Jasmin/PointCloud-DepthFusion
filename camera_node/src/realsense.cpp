@@ -362,22 +362,24 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 	// Get camera frames
 	bool frames_available = false;
 
-	frames_available = m_pipe.try_wait_for_frames(&frameset, timeout);
+	try {
 
-	if (frames_available)
-	{
-		// Align depth frame to color frame
-		if (m_align)
-		{
-			frameset = m_filter_align_to_color->process(frameset);
-		}
+		frames_available = m_pipe.try_wait_for_frames(&frameset, timeout);
 
-		// Filter depth frame
-		if (m_filter)
-		{
-			//rs2::depth_frame filtered;
-			auto filtered = frameset.get_depth_frame();
-			/*
+		if (frames_available) {
+		
+			// Align depth frame to color frame
+			if (m_align)
+			{
+				frameset = m_filter_align_to_color->process(frameset);
+			}
+
+			// Filter depth frame
+			if (m_filter)
+			{
+				//rs2::depth_frame filtered;
+				auto filtered = frameset.get_depth_frame();
+				/*
 				The implemented flow of the filters pipeline is in the following order:
 				1. apply decimation filter
 				2. transform the scene into disparity domain
@@ -388,51 +390,54 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 				to depth domain (each post processing block is optional and can be applied independantly).
 				*/
 			
+				//filtered = m_dec_filter.process(filtered);
+
+				//auto filtered_dispa = m_depth_to_disparity.process(filtered); 	// Depth to disparity
+				//filtered = m_spat_filter.process(filtered);			// Spatial filter (has long processing time on big images..)
+				auto filtered_temp = m_temp_filter.process(filtered);			// Temporal filter
+				//filtered = m_disparity_to_depth.process(filtered_temp); 	// Disparity to depth
+				//filtered = m_hole_filter.process(filtered);
+
+				// copy the full range image to depth_frame image
+				//std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_color_image.data, frameset.get_data_size());
+				std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_temp.get_data(), frameset.get_data_size());
+
+			} else {
+				std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
+			}
+
+			// Get frames from frameset
+			std::memcpy(reinterpret_cast<void*>(color_frame), frameset.get_color_frame().get_data(), frameset.get_color_frame().get_data_size());
 	
-			//filtered = m_dec_filter.process(filtered);
+			// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
+			// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
+			// RS2_TIMESTAMP_DOMAIN_GLOBAL_TIME     Frame timestamp was measured in relation to the camera clock and converted
+			//   to OS system clock by constantly measure the difference
+			// RS2_TIMESTAMP_DOMAIN_COUNT           Number of enumeration values. Not a valid input: intended to be used in
+			//   for-loops.
 
-			filtered = m_depth_to_disparity.process(filtered); 	// Depth to disparity
-			//filtered = m_spat_filter.process(filtered);			// Spatial filter (has long processing time on big images..)
-			filtered = m_temp_filter.process(filtered);			// Temporal filter
-			filtered = m_disparity_to_depth.process(filtered); 	// Disparity to depth
-			//filtered = m_hole_filter.process(filtered);
+			// - timestamp mesasured in milliseconds
+			// - color frame is taken before depth frame (approx 7 ms)
+			// - frameset has timestamp of color frame
 
-			// copy the full range image to depth_frame image
-			//std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_color_image.data, frameset.get_data_size());
-			std::memcpy(reinterpret_cast<void*>(depth_frame), filtered.get_data(), frameset.get_data_size());
+			if (frameset.get_frame_timestamp_domain() == RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK)
+			{
+				double elapsed_camera_time = (frameset.get_timestamp() * 1e6) - m_camera_time_base;
+				timestamp                  = (m_system_time_base + elapsed_camera_time) / 1e6;
+			}
+			else
+				timestamp = frameset.get_timestamp();
 
-		} else {
-			std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
-		}
-
-		// Get frames from frameset
-		std::memcpy(reinterpret_cast<void*>(color_frame), frameset.get_color_frame().get_data(), frameset.get_color_frame().get_data_size());
-	
-		// RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK 	Frame timestamp was measured in relation to the camera clock
-		// RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME     Frame timestamp was measured in relation to the OS system clock
-		// RS2_TIMESTAMP_DOMAIN_GLOBAL_TIME     Frame timestamp was measured in relation to the camera clock and converted
-		//   to OS system clock by constantly measure the difference
-		// RS2_TIMESTAMP_DOMAIN_COUNT           Number of enumeration values. Not a valid input: intended to be used in
-		//   for-loops.
-
-		// - timestamp mesasured in milliseconds
-		// - color frame is taken before depth frame (approx 7 ms)
-		// - frameset has timestamp of color frame
-
-		if (frameset.get_frame_timestamp_domain() == RS2_TIMESTAMP_DOMAIN_HARDWARE_CLOCK)
-		{
-			double elapsed_camera_time = (frameset.get_timestamp() * 1e6) - m_camera_time_base;
-			timestamp                  = (m_system_time_base + elapsed_camera_time) / 1e6;
+			return true;
 		}
 		else
-			timestamp = frameset.get_timestamp();
-
-		return true;
-	}
-	else
-	{
-		depth_frame = nullptr;
-		color_frame = nullptr;
+		{
+			//depth_frame = nullptr;
+			//color_frame = nullptr;
+			return false;
+		}
+	} catch(...) {
+		std::cout << "realsense loop failed!!" << std::endl;
 		return false;
 	}
 }

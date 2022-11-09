@@ -104,19 +104,28 @@ void CameraNode::init()
 	m_pRealsense->getColorCameraInfo(m_color_camerainfo);
 	m_pRealsense->getDepthCameraInfo(m_depth_camerainfo);
 
-	// Quality of service
-	if (m_pConfig->qos_sensor_data()) m_qos_profile = rclcpp::SensorDataQoS();
-
-	m_qos_profile = m_qos_profile.keep_last(m_pConfig->qos_history_depth());
-	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(500));
+	rclcpp::QoS m_qos_profile = rclcpp::SensorDataQoS();
+	m_qos_profile = m_qos_profile.keep_last(5);
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
-
-
-	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(m_pConfig->qos_history_depth());
-	m_qos_profile_sysdef = m_qos_profile_sysdef.lifespan(std::chrono::milliseconds(500));
-	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	
+	rclcpp::QoS m_qos_profile_sysdef = rclcpp::SystemDefaultsQoS();
+	m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(5);
+	m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
 	m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+
+	// Quality of service
+	//if (m_pConfig->qos_sensor_data()) m_qos_profile = rclcpp::SensorDataQoS();
+
+	//m_qos_profile = m_qos_profile.keep_last(m_pConfig->qos_history_depth());
+	//m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
+
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.keep_last(m_pConfig->qos_history_depth());
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+	//m_qos_profile_sysdef = m_qos_profile_sysdef.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 	//rclcpp::QoS m_qos_profile_BEST = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
 	//m_qos_profile_sysdef = m_qos_profile_sysdef.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT );
 	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
@@ -135,7 +144,7 @@ void CameraNode::init()
 	//m_image_small_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_color_small, m_qos_profile);
 	m_depth_image_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_depth, m_qos_profile);
 	m_fps_publisher    					= this->create_publisher<std_msgs::msg::String>(topic_fps, m_qos_profile_sysdef);
-	m_publish_timer        				= this->create_wall_timer(std::chrono::nanoseconds(static_cast<int>(1e9 / 30)), std::bind(&CameraNode::publishEverything, this));
+	m_publish_timer        				= this->create_wall_timer(std::chrono::milliseconds(static_cast<int>(1e3 / 30)), std::bind(&CameraNode::publishEverything, this));
 
 	// Create camera parameter service
 	m_service = this->create_service<camera_interfaces::srv::GetCameraParameters>(m_node_name + "/get_camera_parameters",std::bind(&CameraNode::getCameraParameters, this, std::placeholders::_1, std::placeholders::_2));
@@ -177,80 +186,102 @@ void CameraNode::stop()
 
 void CameraNode::publishFrameset(uint8_t * color_image, int color_width, int color_height, uint16_t * depth_image, int depth_width, int depth_height, rclcpp::Time ros_timestamp)
 {
-	uint8_t * ui8_depth_image = reinterpret_cast<uint8_t *>(depth_image);
+	try{
+		uint8_t * ui8_depth_image = reinterpret_cast<uint8_t *>(depth_image);
 
-	sensor_msgs::msg::Image depth_msg;
-	depth_msg.header.frame_id = "camera_depth_optical_frame";
-	depth_msg.header.stamp    = ros_timestamp;
-	depth_msg.width           = static_cast<uint>(depth_width);
-	depth_msg.height          = static_cast<uint>(depth_height);
-	depth_msg.is_bigendian    = false;
-	depth_msg.step            = depth_msg.width * sizeof(uint16_t);
-	depth_msg.encoding        = "mono16";
-	depth_msg.data.assign(ui8_depth_image, ui8_depth_image + (depth_msg.step * depth_msg.height));
+		sensor_msgs::msg::Image depth_msg;
+		depth_msg.header.frame_id = "camera_depth_optical_frame";
+		depth_msg.header.stamp    = ros_timestamp;
+		depth_msg.width           = static_cast<uint>(depth_width);
+		depth_msg.height          = static_cast<uint>(depth_height);
+		depth_msg.is_bigendian    = false;
+		depth_msg.step            = depth_msg.width * sizeof(uint16_t);
+		depth_msg.encoding        = "mono16";
+		depth_msg.data.assign(ui8_depth_image, ui8_depth_image + (depth_msg.step * depth_msg.height));
 
-	sensor_msgs::msg::Image color_msg;
-	color_msg.header.frame_id = "camera_color_optical_frame";
-	color_msg.header.stamp    = ros_timestamp;
-	color_msg.width           = static_cast<uint>(color_width);
-	color_msg.height          = static_cast<uint>(color_height);
-	color_msg.is_bigendian    = false;
-	color_msg.step            = color_msg.width * 3 * sizeof(uint8_t);
-	color_msg.encoding        = "rgb8";
-	color_msg.data.assign(color_image, color_image + (color_msg.step * color_msg.height));
+		sensor_msgs::msg::Image color_msg;
+		color_msg.header.frame_id = "camera_color_optical_frame";
+		color_msg.header.stamp    = ros_timestamp;
+		color_msg.width           = static_cast<uint>(color_width);
+		color_msg.height          = static_cast<uint>(color_height);
+		color_msg.is_bigendian    = false;
+		color_msg.step            = color_msg.width * 3 * sizeof(uint8_t);
+		color_msg.encoding        = "rgb8";
+		color_msg.data.assign(color_image, color_image + (color_msg.step * color_msg.height));
 
-	camera_interfaces::msg::DepthFrameset::UniquePtr frameset_msg(new camera_interfaces::msg::DepthFrameset());
-	frameset_msg->header.frame_id = "camera_optical_frame";
-	frameset_msg->header.stamp    = ros_timestamp;
-	frameset_msg->depth_image     = depth_msg;
-	frameset_msg->color_image     = color_msg;
+		camera_interfaces::msg::DepthFrameset::UniquePtr frameset_msg(new camera_interfaces::msg::DepthFrameset());
+		frameset_msg->header.frame_id = "camera_optical_frame";
+		frameset_msg->header.stamp    = ros_timestamp;
+		frameset_msg->depth_image     = depth_msg;
+		frameset_msg->color_image     = color_msg;
 	
-	// Publish frameset
-	m_frameset_publisher->publish(std::move(frameset_msg));
+		// Publish frameset
+	
+		m_frameset_publisher->publish(std::move(frameset_msg));
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "m_frameset_publisher: hmm publishing dets has failed!! ");
+  	}
 }
 
 
 void CameraNode::publishImage(uint8_t * color_image, int width, int height, std::string frame_id, rclcpp::Time ros_timestamp, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher)
 {
-	sensor_msgs::msg::Image color_msg;
-	color_msg.header.frame_id = frame_id;
-	color_msg.header.stamp    = ros_timestamp;
-	color_msg.width           = width;
-	color_msg.height          = height;
-	color_msg.is_bigendian    = false;
-	color_msg.step            = color_msg.width * 3 * sizeof(uint8_t);
-	color_msg.encoding        = "rgb8";
-	color_msg.data.assign(color_image, color_image + (color_msg.step * color_msg.height));
+	try{
+		sensor_msgs::msg::Image color_msg;
+		color_msg.header.frame_id = frame_id;
+		color_msg.header.stamp    = ros_timestamp;
+		color_msg.width           = width;
+		color_msg.height          = height;
+		color_msg.is_bigendian    = false;
+		color_msg.step            = color_msg.width * 3 * sizeof(uint8_t);
+		color_msg.encoding        = "rgb8";
+		color_msg.data.assign(color_image, color_image + (color_msg.step * color_msg.height));
 
-	sensor_msgs::msg::Image::UniquePtr color_msg_ptr = std::make_unique<sensor_msgs::msg::Image>(color_msg);
+		sensor_msgs::msg::Image::UniquePtr color_msg_ptr = std::make_unique<sensor_msgs::msg::Image>(color_msg);
 
-	message_publisher->publish(std::move(color_msg));
+	
+		message_publisher->publish(std::move(color_msg));
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing dets has failed!! ");
+  	}
 }
 
 void CameraNode::publishDepthImage(uint16_t * depth_image, int width, int height, std::string frame_id, rclcpp::Time ros_timestamp, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr message_publisher)
 {
 
-	uint8_t * ui8_depth_image = reinterpret_cast<uint8_t *>(depth_image);
+	try{
+		uint8_t * ui8_depth_image = reinterpret_cast<uint8_t *>(depth_image);
 
-	sensor_msgs::msg::Image depth_msg;
-	depth_msg.header.frame_id = frame_id;
-	depth_msg.header.stamp    = ros_timestamp;
-	depth_msg.width           = width;
-	depth_msg.height          = height;
-	depth_msg.is_bigendian    = false;
-	depth_msg.step            = depth_msg.width * sizeof(uint16_t);
-	depth_msg.encoding        = "mono16";
-	depth_msg.data.assign(ui8_depth_image, ui8_depth_image + (depth_msg.step * depth_msg.height));
+		sensor_msgs::msg::Image depth_msg;
+		depth_msg.header.frame_id = frame_id;
+		depth_msg.header.stamp    = ros_timestamp;
+		depth_msg.width           = width;
+		depth_msg.height          = height;
+		depth_msg.is_bigendian    = false;
+		depth_msg.step            = depth_msg.width * sizeof(uint16_t);
+		depth_msg.encoding        = "mono16";
+		depth_msg.data.assign(ui8_depth_image, ui8_depth_image + (depth_msg.step * depth_msg.height));
 
-	sensor_msgs::msg::Image::UniquePtr depth_msg_ptr = std::make_unique<sensor_msgs::msg::Image>(depth_msg);
-
-	message_publisher->publish(std::move(depth_msg_ptr));
+		sensor_msgs::msg::Image::UniquePtr depth_msg_ptr = std::make_unique<sensor_msgs::msg::Image>(depth_msg);
+	
+		message_publisher->publish(std::move(depth_msg_ptr));
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing dets has failed!! ");
+  	}
 
 }
 
 void CameraNode::getNextImages (uint8_t *next_color_frame_bytes, uint16_t *next_depth_frame_bytes, double &m_timestamp, int timeout)
 {
-	m_pRealsense->getFrames(next_color_frame_bytes, next_depth_frame_bytes, m_timestamp, timeout);
+	try{
+		m_pRealsense->getFrames(next_color_frame_bytes, next_depth_frame_bytes, m_timestamp, timeout);
+	} catch (...) {
+	
+		RCLCPP_INFO(this->get_logger(), "getNextImages failed! ");
+	}
 }
 
 /**
@@ -258,78 +289,83 @@ void CameraNode::getNextImages (uint8_t *next_color_frame_bytes, uint16_t *next_
  */
 void CameraNode::publishEverything()
 {
-	if (m_pExit_request->load() || !rclcpp::ok())
-	{
-		m_publish_timer.get()->cancel();
-		m_pRealsense->stop();
-		return;
-	}
 
-	// Pointer and variables
-	uint8_t *current_color_frame_bytes;
-	//uint8_t *current_color_frame_small_bytes;
-	uint16_t *current_depth_frame_bytes;
+	try{
+		if (m_pExit_request->load() || !rclcpp::ok())
+		{
+			m_publish_timer.get()->cancel();
+			m_pRealsense->stop();
+			return;
+		}
 
-	uint8_t *next_color_frame_bytes;
-	//uint8_t *next_color_frame_small_bytes;
-	uint16_t *next_depth_frame_bytes;
-
-	// ----------------------------------------
-	// Set timestamp for the last frame to be published now
-	rclcpp::Time ros_timestamp = rclcpp::Time(int64_t(m_timestamp * 1e6), RCL_ROS_TIME); // Camera timestamp
-
-	// ----------------------------------------
-	// Set all pointer to the correct buffer
-	if(m_buffer){
-		// last frames to be published now
-		current_depth_frame_bytes			= m_pDepth_frame_0;
-		current_color_frame_bytes 			= m_pColor_frame_0;
-		//current_color_frame_small_bytes 	= m_pColor_frame_small_0;
-		// images polled in this iteration
-		next_color_frame_bytes 				= m_pColor_frame_1;
-		next_depth_frame_bytes 				= m_pDepth_frame_1;
-		//next_color_frame_small_bytes 		= m_pColor_frame_small_1;
-	} else {
-		// last frames to be published now
-		current_depth_frame_bytes 			= m_pDepth_frame_1;
-		current_color_frame_bytes 			= m_pColor_frame_1;
-		//current_color_frame_small_bytes 	= m_pColor_frame_small_1;
-		// images polled in this iteration
-		next_color_frame_bytes 				= m_pColor_frame_0;
-		next_depth_frame_bytes 				= m_pDepth_frame_0;
-		//next_color_frame_small_bytes 		= m_pColor_frame_small_0;
-	}
-
-	// ----------------------------------------
-	// Get new images
-	//getNextImages(next_color_frame_bytes, next_depth_frame_bytes, next_depth_threshold_frame_bytes, std::ref(m_timestamp), 60);
-	auto future_getNextImages = std::async(&CameraNode::getNextImages, this, next_color_frame_bytes, next_depth_frame_bytes, std::ref(m_timestamp), 60);
-
-	// ----------------------------------------
-	// Start all publisher threads
-	auto future_publishFrameset 	= std::async(&CameraNode::publishFrameset, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height, ros_timestamp);
-	auto future_publishdepth 		= std::async(&CameraNode::publishDepthImage, this, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height , "camera_depth_optical_frame", ros_timestamp, m_depth_image_publisher);
-	//auto future_publishImage 		= std::async(&CameraNode::publishImage, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height , "camera_color_optical_frame", ros_timestamp, m_image_publisher);
-
-	// ----------------------------------------
-	// resize in thread has lead to a memory leak... so do it in the main thread and start thread with that.
-	//cv::Mat fullimage(cv::Size(m_color_intrinsics.width, m_color_intrinsics.height), CV_8UC3 ,current_color_frame_bytes);
-	//cv::Mat smallimage;
-	//cv::resize(fullimage, smallimage, cv::Size(m_pConfig->smallImage_width(), m_pConfig->smallImage_height()), cv::INTER_LINEAR);
-	//std::memcpy(reinterpret_cast<void*>(current_color_frame_small_bytes), smallimage.data, smallimage.size().width * smallimage.size().height * smallimage.channels() * sizeof(uint8_t) );
-	//auto future_publishImageSmall = std::async(&CameraNode::publishImage, this, current_color_frame_small_bytes, m_pConfig->smallImage_width(), m_pConfig->smallImage_height() , "camera_smaller_color_optical_frame", ros_timestamp, m_image_small_publisher);
-
-	// ----------------------------------------
-	// clean up
+		// Pointer and variables
+		uint8_t *current_color_frame_bytes;
+		//uint8_t *current_color_frame_small_bytes;
+		uint16_t *current_depth_frame_bytes;
 	
-	// No need to wait for the treads in general.. 
-	//future_getNextImages.wait();
-	//future_publishImageSmall.wait();
-	//future_publishFrameset.wait();
+		uint8_t *next_color_frame_bytes;
+		//uint8_t *next_color_frame_small_bytes;
+		uint16_t *next_depth_frame_bytes;
 
-	m_buffer = !m_buffer;
+		// ----------------------------------------
+		// Set timestamp for the last frame to be published now
+		rclcpp::Time ros_timestamp = rclcpp::Time(int64_t(m_timestamp * 1e6), RCL_ROS_TIME); // Camera timestamp
 
+		// ----------------------------------------
+		// Set all pointer to the correct buffer
+		if(m_buffer){
+			// last frames to be published now
+			current_depth_frame_bytes			= m_pDepth_frame_0;
+			current_color_frame_bytes 			= m_pColor_frame_0;
+			//current_color_frame_small_bytes 	= m_pColor_frame_small_0;
+			// images polled in this iteration
+			next_color_frame_bytes 				= m_pColor_frame_1;
+			next_depth_frame_bytes 				= m_pDepth_frame_1;
+			//next_color_frame_small_bytes 		= m_pColor_frame_small_1;
+		} else {
+			// last frames to be published now
+			current_depth_frame_bytes 			= m_pDepth_frame_1;
+			current_color_frame_bytes 			= m_pColor_frame_1;
+			//current_color_frame_small_bytes 	= m_pColor_frame_small_1;
+			// images polled in this iteration
+			next_color_frame_bytes 				= m_pColor_frame_0;
+			next_depth_frame_bytes 				= m_pDepth_frame_0;
+			//next_color_frame_small_bytes 		= m_pColor_frame_small_0;
+		}
 
+		// ----------------------------------------
+		// Get new images
+		//getNextImages(next_color_frame_bytes, next_depth_frame_bytes, next_depth_threshold_frame_bytes, std::ref(m_timestamp), 60);
+		auto future_getNextImages = std::async(&CameraNode::getNextImages, this, next_color_frame_bytes, next_depth_frame_bytes, std::ref(m_timestamp), 300);
+
+		// ----------------------------------------
+		// Start all publisher threads
+		auto future_publishFrameset = std::async(&CameraNode::publishFrameset, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height, ros_timestamp);
+		auto future_publishdepth = std::async(&CameraNode::publishDepthImage, this, current_depth_frame_bytes, m_depth_intrinsics.width, m_depth_intrinsics.height , "camera_depth_optical_frame", ros_timestamp, m_depth_image_publisher);
+		//auto future_publishImage 		= std::async(&CameraNode::publishImage, this, current_color_frame_bytes, m_color_intrinsics.width, m_color_intrinsics.height , "camera_color_optical_frame", ros_timestamp, m_image_publisher);
+
+		// ----------------------------------------
+		// resize in thread has lead to a memory leak... so do it in the main thread and start thread with that.
+		//cv::Mat fullimage(cv::Size(m_color_intrinsics.width, m_color_intrinsics.height), CV_8UC3 ,current_color_frame_bytes);
+		//cv::Mat smallimage;
+		//cv::resize(fullimage, smallimage, cv::Size(m_pConfig->smallImage_width(), m_pConfig->smallImage_height()), cv::INTER_LINEAR);
+		//std::memcpy(reinterpret_cast<void*>(current_color_frame_small_bytes), smallimage.data, smallimage.size().width * smallimage.size().height * smallimage.channels() * sizeof(uint8_t) );
+		//auto future_publishImageSmall = std::async(&CameraNode::publishImage, this, current_color_frame_small_bytes, m_pConfig->smallImage_width(), m_pConfig->smallImage_height() , "camera_smaller_color_optical_frame", ros_timestamp, m_image_small_publisher);
+
+		// ----------------------------------------
+		// clean up
+	
+		// No need to wait for the treads in general.. 
+		future_getNextImages.wait();
+		//future_publishImageSmall.wait();
+		future_publishFrameset.wait();
+		future_publishdepth.wait();
+
+		m_buffer = !m_buffer;
+		
+	} catch (...) {
+		RCLCPP_INFO(this->get_logger(), "camera try failed!!");
+	}
 	m_frameCnt++;
 	CheckFPS(&m_frameCnt);
 }
@@ -374,18 +410,26 @@ void CameraNode::CheckFPS(uint64_t* pFrameCnt)
 
 void CameraNode::PrintFPS(const float fps, const float itrTime)
 {
-	std::stringstream str("");
+	try{
+		std::stringstream str("");
 
-	if (fps == 0.0f)
-			str << string_format("{\"%s\": 0.0}", m_FPS_STR.c_str());
-	else
-		str << string_format("{\"%s\": %.2f, \"lastCurrMSec\": %.2f }", m_FPS_STR.c_str(), fps, itrTime);
+		if (fps == 0.0f)
+				str << string_format("{\"%s\": 0.0}", m_FPS_STR.c_str());
+		else
+			str << string_format("{\"%s\": %.2f, \"lastCurrMSec\": %.2f }", m_FPS_STR.c_str(), fps, itrTime);
 
-	auto message = std_msgs::msg::String();
-	message.data = str.str();
-	m_fps_publisher->publish(message);
+		auto message = std_msgs::msg::String();
+		message.data = str.str();
+		
+		m_fps_publisher->publish(message);
+
+		if (m_print_fps)
+			RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+	}
+  	catch (...) {
+    	RCLCPP_INFO(this->get_logger(), "m_fps_publisher: hmm publishing dets has failed!! ");
+  	}
 
 		
-	if (m_print_fps)
-		RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+
 }

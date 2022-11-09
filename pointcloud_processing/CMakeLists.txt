@@ -129,7 +129,7 @@ endif()
 message(STATUS "+============================")
 
 #### PCL ####
-find_package(PCL 1.7.2 REQUIRED QUIET)
+find_package(PCL 1.12.0 REQUIRED QUIET)
 message(STATUS "+==========[ PCL ]===========")
 if (PCL_FOUND)
 	message(STATUS "|  PCL version:\t" ${PCL_VERSION})

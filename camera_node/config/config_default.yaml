@@ -23,7 +23,8 @@ camera_left:
     #camera_serial_no: "806312060492"
     #camera_serial_no: "141322250659"
     #camera_serial_no: "843112073861"
-    camera_serial_no: "141322251466"
+    #camera_serial_no: "141322251466"
+    camera_serial_no: "825312070323"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
     # Debug configuration
@@ -78,7 +79,7 @@ camera_right:
      # Use sensor data Quality of Service for messages
     qos_sensor_data: true
     # Message queue size
-    qos_history_depth: 2
+    qos_history_depth: 5
     # Minimum and maximum limit for depth values
     #min_depth: 0.5
     #max_depth: 2.0
