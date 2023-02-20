@@ -32,7 +32,6 @@ CameraNode::CameraNode(const std::string &name) : Node(name, rclcpp::NodeOptions
 	m_pConfig                 = new Config(this);
 	m_pRealsense              = new Realsense();
 
-	this->declare_parameter<bool>("use_rs_align", true);
 	this->declare_parameter("print_fps", true);
 	this->declare_parameter("FPS_STR", "FPS" );
 
@@ -60,7 +59,6 @@ CameraNode::~CameraNode()
 void CameraNode::init()
 {
 
-	this->get_parameter("use_rs_align", m_use_rs_align);
 	this->get_parameter("FPS_STR", m_FPS_STR );
 	this->get_parameter("print_fps", m_print_fps);
 
@@ -75,7 +73,6 @@ void CameraNode::init()
 	m_pRealsense->setExitSignal(m_pExit_request);
 	m_pRealsense->setDebug(m_pConfig->enable_rs_debug());
 	m_pRealsense->setVerbosity(m_pConfig->verbose());
-	m_pRealsense->setAlign(m_use_rs_align);
 	m_pRealsense->setDepthScale(m_pConfig->depth_scale());
 	m_pRealsense->setDepthMax(m_pConfig->max_depth());
 	// Initialize Realsense camera
@@ -140,7 +137,7 @@ void CameraNode::init()
 	std::string topic_fps			= std::string(this->get_name()) + "/fps";
 
 	m_frameset_publisher    			= this->create_publisher<camera_interfaces::msg::DepthFrameset>(topic_frameset, m_qos_profile);
-	//m_image_publisher 					= this->create_publisher<sensor_msgs::msg::Image>(topic_color, m_qos_profile);
+	//m_image_publisher 				= this->create_publisher<sensor_msgs::msg::Image>(topic_color, m_qos_profile);
 	//m_image_small_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_color_small, m_qos_profile);
 	m_depth_image_publisher 			= this->create_publisher<sensor_msgs::msg::Image>(topic_depth, m_qos_profile);
 	m_fps_publisher    					= this->create_publisher<std_msgs::msg::String>(topic_fps, m_qos_profile_sysdef);
@@ -244,7 +241,7 @@ void CameraNode::publishImage(uint8_t * color_image, int width, int height, std:
 		message_publisher->publish(std::move(color_msg));
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing dets has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing image has failed!! ");
   	}
 }
 
@@ -269,7 +266,7 @@ void CameraNode::publishDepthImage(uint16_t * depth_image, int width, int height
 		message_publisher->publish(std::move(depth_msg_ptr));
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing dets has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing depth image has failed!! ");
   	}
 
 }

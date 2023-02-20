@@ -378,7 +378,7 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 			if (m_filter)
 			{
 				//rs2::depth_frame filtered;
-				auto filtered = frameset.get_depth_frame();
+				rs2::depth_frame filtered = frameset.get_depth_frame();
 				/*
 				The implemented flow of the filters pipeline is in the following order:
 				1. apply decimation filter
@@ -394,13 +394,13 @@ bool Realsense::getFrames(uint8_t* color_frame, uint16_t* depth_frame, double& t
 
 				//auto filtered_dispa = m_depth_to_disparity.process(filtered); 	// Depth to disparity
 				//filtered = m_spat_filter.process(filtered);			// Spatial filter (has long processing time on big images..)
-				auto filtered_temp = m_temp_filter.process(filtered);			// Temporal filter
+				rs2::depth_frame filtered_temp = m_temp_filter.process(filtered);			// Temporal filter
 				//filtered = m_disparity_to_depth.process(filtered_temp); 	// Disparity to depth
 				//filtered = m_hole_filter.process(filtered);
 
 				// copy the full range image to depth_frame image
 				//std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_color_image.data, frameset.get_data_size());
-				std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_temp.get_data(), frameset.get_data_size());
+				std::memcpy(reinterpret_cast<void*>(depth_frame), filtered_temp.get_data(), filtered_temp.get_data_size());
 
 			} else {
 				std::memcpy(reinterpret_cast<void*>(depth_frame), frameset.get_depth_frame().get_data(), frameset.get_depth_frame().get_data_size());
@@ -723,10 +723,12 @@ void Realsense::getDepthCameraInfo(sensor_msgs::msg::CameraInfo& camera_info) co
 
 	stream_profile = m_pipe_profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	
-	if (m_align) {
-		stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
-	}
+	//if (m_align) {
+	//	stream_profile = m_pipe_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+	//}
+	
 	intrinsics = stream_profile.get_intrinsics();
+
 	intrinsics2CameraInfo(camera_info, intrinsics);
 }
 

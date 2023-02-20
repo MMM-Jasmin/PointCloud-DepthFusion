@@ -74,14 +74,6 @@ public:
 	{
 		m_depth_max = depth_max;
 	}
-	/**
-	 * @brief Set align depth to color frame.
-	 * @param align True if depth frame should be aligned to color frame
-	 */
-	void setAlign(const bool& align)
-	{
-		m_align = align;
-	}
 	
 	void init(std::string camera_serial_no = "");
 	void start();
