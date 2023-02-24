@@ -217,7 +217,7 @@ void CameraNode::publishFrameset(uint8_t * color_image, int color_width, int col
 		m_frameset_publisher->publish(std::move(frameset_msg));
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "m_frameset_publisher: hmm publishing dets has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "hmm publishing dets has failed!! ");
   	}
 }
 
@@ -241,7 +241,7 @@ void CameraNode::publishImage(uint8_t * color_image, int width, int height, std:
 		message_publisher->publish(std::move(color_msg));
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing image has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "hmm publishing image has failed!! ");
   	}
 }
 
@@ -266,7 +266,7 @@ void CameraNode::publishDepthImage(uint16_t * depth_image, int width, int height
 		message_publisher->publish(std::move(depth_msg_ptr));
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "message_publisher: hmm publishing depth image has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "hmm publishing depth image has failed!! ");
   	}
 
 }
@@ -421,10 +421,10 @@ void CameraNode::PrintFPS(const float fps, const float itrTime)
 		m_fps_publisher->publish(message);
 
 		if (m_print_fps)
-			RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+			RCLCPP_INFO(this->get_logger(), message.data.c_str());
 	}
   	catch (...) {
-    	RCLCPP_INFO(this->get_logger(), "m_fps_publisher: hmm publishing dets has failed!! ");
+    	RCLCPP_INFO(this->get_logger(), "hmm publishing dets has failed!! ");
   	}
 
 		
