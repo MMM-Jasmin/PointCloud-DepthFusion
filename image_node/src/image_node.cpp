@@ -19,14 +19,14 @@ void ImageNode::init()
 	// cv::namedWindow(m_window_name_color, cv::WINDOW_AUTOSIZE);
 	// cv::namedWindow(m_window_name_depth, cv::WINDOW_AUTOSIZE);
 
-	//m_image_small_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_image_small, m_qos_profile, std::bind(&ImageNode::imageSmallCallback, this, std::placeholders::_1));
-	//cv::namedWindow(m_window_name_image_small, cv::WINDOW_AUTOSIZE);
+	m_image_small_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_image_small, m_qos_profile, std::bind(&ImageNode::imageSmallCallback, this, std::placeholders::_1));
+	cv::namedWindow(m_window_name_image_small, cv::WINDOW_AUTOSIZE);
 
 	//m_depth_thr_subscription = this->create_subscription<sensor_msgs::msg::Image>( m_topic_depth, m_qos_profile, std::bind(&ImageNode::depthCallback, this, std::placeholders::_1));
 	//cv::namedWindow(m_window_name_depth, cv::WINDOW_AUTOSIZE);
 
-	m_fused_image_subscription = this->create_subscription<sensor_msgs::msg::Image>(m_topic_fused_image, m_qos_profile, std::bind(&ImageNode::fusedCallback, this, std::placeholders::_1));
-	cv::namedWindow(m_window_name_fused, cv::WINDOW_AUTOSIZE);
+	//m_fused_image_subscription = this->create_subscription<sensor_msgs::msg::Image>(m_topic_fused_image, m_qos_profile, std::bind(&ImageNode::fusedCallback, this, std::placeholders::_1));
+	//cv::namedWindow(m_window_name_fused, cv::WINDOW_AUTOSIZE);
 	// if (!(cv::waitKey(1) < 0 && cv::getWindowProperty(m_window_name_fused, cv::WND_PROP_AUTOSIZE) >= 0))
 	// 	rclcpp::shutdown();
 }

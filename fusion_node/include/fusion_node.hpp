@@ -45,8 +45,7 @@ class FusionNode : public rclcpp::Node
 #endif
 
 	// Message filter sync
-	typedef message_filters::sync_policies::ApproximateTime<camera_interfaces::msg::DepthFrameset, camera_interfaces::msg::DepthFrameset>
-		FramesetSyncPolicy;
+	typedef message_filters::sync_policies::ApproximateTime<camera_interfaces::msg::DepthFrameset, camera_interfaces::msg::DepthFrameset> FramesetSyncPolicy;
 	typedef message_filters::Synchronizer<FramesetSyncPolicy> FramesetSync;
 	using Clock = std::chrono::high_resolution_clock;
 

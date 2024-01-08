@@ -22,9 +22,9 @@ camera_left:
     # Camera serial number
     #camera_serial_no: "806312060492"
     #camera_serial_no: "141322250659"
-    #camera_serial_no: "843112073861"
+    camera_serial_no: "843112073861"
     #camera_serial_no: "141322251466"
-    camera_serial_no: "825312070323"
+    #camera_serial_no: "825312070323"
     # Use camera frame timestamp; If false set timestamp to time of arrival
     use_rs_timestamp: true
     # Debug configuration

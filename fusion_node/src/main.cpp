@@ -73,12 +73,13 @@ int main(int argc, char **argv)
 	fusion_node->setExitSignal(&exit_request);
 	fusion_node->init();
 
-	rclcpp::executors::MultiThreadedExecutor executor1(rclcpp::ExecutorOptions(), 3, false);
+	//rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 3, false);
+	rclcpp::executors::SingleThreadedExecutor executor;
 
-	executor1.add_node(fusion_node);
-	executor1.spin();
+	executor.add_node(fusion_node);
+	executor.spin();
 
-	executor1.cancel();
+	executor.cancel();
 	rclcpp::shutdown();
 
 	std::cout << "+==========[ Shutdown ]==========+" << std::endl;

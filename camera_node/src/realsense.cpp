@@ -232,6 +232,7 @@ void Realsense::initPipeline(std::string camera_serial_no)
 	{
 		m_rs_config.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
 		m_rs_config.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
+		//m_rs_config.enable_stream(RS2_STREAM_COLOR, 1920, 1080, RS2_FORMAT_RGB8, 30);
 	}
 
 	// Setup filters

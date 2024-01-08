@@ -16,9 +16,9 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
     "srv/GetCameraParameters.srv"
-	"msg/DepthFrameset.msg"
-	"msg/EncodedImage.msg"
-	"msg/EncodedFrameset.msg"
+	  "msg/DepthFrameset.msg"
+	  "msg/EncodedImage.msg"
+	  "msg/EncodedFrameset.msg"
     DEPENDENCIES sensor_msgs
 )
 

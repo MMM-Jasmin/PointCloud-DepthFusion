@@ -25,10 +25,11 @@ public:
 	void init();
 
 private:
-	std::string m_topic_depth  			= "/camera_left/depth/image";
-	std::string m_topic_depth_thr		= "/camera_left/depth/image_threshold";
+	std::string m_topic_depth  		= "/background/depth";
+	std::string m_topic_depth_thr	= "/camera_left/depth/image_threshold";
 	std::string m_topic_frameset    = "/camera_left/frameset";
-	std::string m_topic_image_small	= "/camera_left/color/image_small";
+	std::string m_topic_image_small	= "/background/color_ostest";
+	// /camera_left/color/image_small";
 	std::string m_topic_fused_image = "/fused_image";
 
 	std::string m_window_name_depth	 			= "Depth_Frame";

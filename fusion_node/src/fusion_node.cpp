@@ -184,7 +184,7 @@ void FusionNode::init()
 	m_qos_profile = m_qos_profile.keep_last(static_cast<size_t>(m_qos_history_depth));
 	m_qos_profile = m_qos_profile.lifespan(std::chrono::milliseconds(1000));
 	m_qos_profile = m_qos_profile.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
-	m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+	//m_qos_profile = m_qos_profile.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
 
 	// Fused color image publisher
 	m_fused_publisher = image_transport::create_publisher(this, "/fused_image", m_qos_profile.get_rmw_qos_profile());
